@@ -1,0 +1,32 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: servicegroups.cilium.airplus.com
+spec:
+  group: cilium.airplus.com
+  names:
+    kind: ServiceGroup
+    listKind: ServiceGroupList
+    plural: servicegroups
+    singular: servicegroup
+  scope: Namespaced
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                serviceNames:
+                  type: array
+                  items:
+                    type: string
+            status:
+              type: object
+              properties:
+                status:
+                  type: string
