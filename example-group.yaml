@@ -1,0 +1,12 @@
+---
+apiVersion: cilium.airplus.com/v1
+kind: ServiceGroup
+metadata:
+  name: example-service-group
+  namespace: default
+spec:
+  serviceNames:
+    - frontend
+    - backend
+    - database
+    - hallowelt
