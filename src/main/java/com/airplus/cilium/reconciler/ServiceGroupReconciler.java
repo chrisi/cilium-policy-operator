@@ -2,6 +2,8 @@ package com.airplus.cilium.reconciler;
 
 import com.airplus.cilium.crd.ServiceGroup;
 import com.airplus.cilium.crd.ServiceGroupStatus;
+import io.fabric8.kubernetes.api.model.GenericKubernetesResource;
+import io.fabric8.kubernetes.api.model.GenericKubernetesResourceBuilder;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyBuilder;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyIngressRuleBuilder;
@@ -15,6 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
@@ -77,6 +81,37 @@ public class ServiceGroupReconciler implements Reconciler<ServiceGroup> {
         client.network().v1().networkPolicies().inNamespace(namespace).resource(networkPolicy).serverSideApply();
 
         log.info("NetworkPolicy {} updated/created for ServiceGroup {}", networkPolicy.getMetadata().getName(), name);
+
+        // Create a CiliumNetworkPolicy (CNP) using Generic API
+        GenericKubernetesResource cnp = new GenericKubernetesResourceBuilder()
+                .withApiVersion("cilium.io/v2")
+                .withKind("CiliumNetworkPolicy")
+                .withNewMetadata()
+                    .withName(name + "-cnp")
+                    .withNamespace(namespace)
+                    .addNewOwnerReference()
+                        .withApiVersion(resource.getApiVersion())
+                        .withKind(resource.getKind())
+                        .withName(name)
+                        .withUid(resource.getMetadata().getUid())
+                        .withController(true)
+                        .withBlockOwnerDeletion(true)
+                    .endOwnerReference()
+                .endMetadata()
+                .addToAdditionalProperties("spec", Map.of(
+                        "endpointSelector", Map.of("matchLabels", Map.of("service-group", name)),
+                        "ingress", serviceNames.stream()
+                                .map(svc -> Map.of("fromEndpoints", List.of(Map.of("matchLabels", Map.of("app", svc)))))
+                                .collect(Collectors.toList())
+                ))
+                .build();
+
+        client.genericKubernetesResources("cilium.io/v2", "CiliumNetworkPolicy")
+                .inNamespace(namespace)
+                .resource(cnp)
+                .serverSideApply();
+
+        log.info("CiliumNetworkPolicy {} updated/created for ServiceGroup {}", cnp.getMetadata().getName(), name);
 
         if (resource.getStatus() == null) {
             resource.setStatus(new ServiceGroupStatus());
