@@ -16,7 +16,7 @@
     <description>cilium-policy-operator</description>
 
     <properties>
-        <java.version>25</java.version>
+        <java.version>21</java.version>
     </properties>
 
     <dependencies>
@@ -29,6 +29,12 @@
             <groupId>io.javaoperatorsdk</groupId>
             <artifactId>operator-framework-spring-boot-starter</artifactId>
             <version>6.4.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <dependency>

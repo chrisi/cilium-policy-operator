@@ -7,5 +7,5 @@ import io.fabric8.kubernetes.model.annotation.Version;
 
 @Group("cilium.airplus.com")
 @Version("v1")
-public class ServiceGroup extends CustomResource<ServiceGroupSpec, ServiceGroupStatus> implements Namespaced {
+public class TargetSystem extends CustomResource<TargetSystemSpec, TargetSystemStatus> implements Namespaced {
 }

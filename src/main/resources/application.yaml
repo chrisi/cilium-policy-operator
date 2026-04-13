@@ -6,7 +6,5 @@ operator:
   # The java-operator-sdk-spring-boot-starter will automatically pick up @Component reconcilers.
   # This section can be used for more specific configuration.
   reconcilers:
-    servicegroupreconciler:
-      # Optional: set a specific namespace for the reconciler to watch
-      # namespaces: [ "default" ]
-      name: servicegroupreconciler
+    targetsystemreconciler:
+      name: targetsystemreconciler

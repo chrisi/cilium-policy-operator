@@ -11,14 +11,14 @@ kubectl apply -f deploy.yaml
 kubectl apply -f src/main/resources/crd.yaml
 ```
 
-## Install example group
+## Install example-target-system
 
 ```bash
-kubectl apply -f example-group.yaml
+kubectl apply -f example-target-system.yaml
 ```
 
 ```bash
-kubectl delete -f example-group.yaml
+kubectl delete -f example-target-system.yaml
 ```
 
 ```bash

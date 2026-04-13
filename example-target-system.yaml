@@ -1,0 +1,20 @@
+---
+apiVersion: cilium.airplus.com/v1
+kind: TargetSystem
+metadata:
+  name: example-target-systems
+  namespace: default
+spec:
+  targets:
+    - name: google-dns
+      address: 8.8.8.8
+      portal: DNS
+      protocol: UDP
+    - name: my-internal-service
+      address: 10.0.0.0/24
+      portal: Internal
+      protocol: TCP
+    - name: external-website
+      address: example.com
+      portal: Web
+      protocol: HTTPS
