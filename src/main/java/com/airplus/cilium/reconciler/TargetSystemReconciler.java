@@ -1,6 +1,7 @@
 package com.airplus.cilium.reconciler;
 
 import com.airplus.cilium.crd.TargetSystem;
+import com.airplus.cilium.crd.TargetSystemEntry;
 import com.airplus.cilium.crd.TargetSystemStatus;
 import io.fabric8.kubernetes.api.model.GenericKubernetesResource;
 import io.fabric8.kubernetes.api.model.GenericKubernetesResourceBuilder;
@@ -15,6 +16,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 @ControllerConfiguration
@@ -34,7 +37,30 @@ public class TargetSystemReconciler implements Reconciler<TargetSystem> {
         log.info("Reconciling TargetSystem: {} in namespace: {}", name, namespace);
 
         var targets = resource.getSpec().getTargets();
-        if (targets == null || targets.isEmpty()) {
+        if (targets == null) {
+            targets = List.of();
+        }
+
+        // 1. Collect names of targets in the current spec
+        Set<String> currentTargetNames = targets.stream()
+                .map(TargetSystemEntry::getName)
+                .collect(Collectors.toSet());
+
+        // 2. List all CCNPs and filter those owned by this TargetSystem
+        String uid = resource.getMetadata().getUid();
+        client.genericKubernetesResources("cilium.io/v2", "CiliumClusterwideNetworkPolicy")
+                .list().getItems().stream()
+                .filter(ccnp -> ccnp.getMetadata().getOwnerReferences().stream()
+                        .anyMatch(ownerReference -> uid.equals(ownerReference.getUid())))
+                .filter(ccnp -> !currentTargetNames.contains(ccnp.getMetadata().getName()))
+                .forEach(ccnp -> {
+                    log.info("Deleting orphaned CCNP: {}", ccnp.getMetadata().getName());
+                    client.genericKubernetesResources("cilium.io/v2", "CiliumClusterwideNetworkPolicy")
+                            .resource(ccnp)
+                            .delete();
+                });
+
+        if (targets.isEmpty()) {
             log.warn("No targets provided for TargetSystem: {}", name);
             return UpdateControl.noUpdate();
         }
