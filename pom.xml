@@ -49,6 +49,33 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <configuration>
+                    <sourceDirectory>${project.basedir}</sourceDirectory>
+                    <images>
+                        <image>
+                            <name>apwessnacr002.azurecr.io/copk8s/cilium-policy-operator</name>
+                            <build>
+                                <dockerFile>Dockerfile</dockerFile>
+                                <args>
+                                    <JAR_FILE>cilium-policy-operator-0.0.1-SNAPSHOT.jar</JAR_FILE>
+                                </args>
+                            </build>
+                        </image>
+                    </images>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -1,5 +1,5 @@
 ## Install operator
-
+ 
 ```bash
 kubectx minikube
 kubectl apply -f deploy.yaml
@@ -25,4 +25,3 @@ kubectl delete -f example-target-system.yaml
 kubectx minikube
 kubectl delete -f deploy.yaml
 ```
-
