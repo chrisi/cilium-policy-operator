@@ -14,7 +14,7 @@ public class ConvertUtils {
     return address != null && address.matches(re);
   }
 
-  public static Map<String, Object> convertTarget(String address, String port, String protocol) {
+  public static List<Map<String, Object>> convertTarget(String address, String port, String protocol) {
     var cidrList = new ArrayList<String>();
     var domainList = new ArrayList<String>();
     var widcardDomainList = new ArrayList<String>();
@@ -47,16 +47,7 @@ public class ConvertUtils {
       widcardDomainList.forEach(d -> fqdns.add(Map.of("matchPattern", d)));
     }
 
-    Map<String, Object> rule = new HashMap<>();
-    if (!cidrList.isEmpty()) {
-      rule.put("toCIDR", cidrList);
-    }
-    if (!fqdns.isEmpty()) {
-      rule.put("toFQDNs", fqdns);
-    }
-
     var toPorts = new ArrayList<Map<String, Object>>();
-
     String[] splitPorts = port.split(",");
     Arrays.stream(splitPorts).forEach(s -> {
       var portMap = new HashMap<String, Object>();
@@ -73,10 +64,26 @@ public class ConvertUtils {
       toPorts.add(Map.of("ports", List.of(portMap)));
     });
 
-    if (!toPorts.isEmpty()) {
-      rule.put("toPorts", toPorts);
+    List<Map<String, Object>> rules = new ArrayList<>();
+
+    if (!cidrList.isEmpty()) {
+      Map<String, Object> cidrRule = new HashMap<>();
+      cidrRule.put("toCIDR", cidrList);
+      if (!toPorts.isEmpty()) {
+        cidrRule.put("toPorts", toPorts);
+      }
+      rules.add(cidrRule);
     }
 
-    return rule;
+    if (!fqdns.isEmpty()) {
+      Map<String, Object> fqdnRule = new HashMap<>();
+      fqdnRule.put("toFQDNs", fqdns);
+      if (!toPorts.isEmpty()) {
+        fqdnRule.put("toPorts", toPorts);
+      }
+      rules.add(fqdnRule);
+    }
+
+    return rules;
   }
 }

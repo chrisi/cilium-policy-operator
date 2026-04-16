@@ -18,7 +18,7 @@ public class CiliumNetworkPolicyService {
     String protocol = entry.getProtocol();
     String port = entry.getPort();
 
-    Map<String, Object> egressRule = ConvertUtils.convertTarget(address, port, protocol);
+    List<Map<String, Object>> egressRules = ConvertUtils.convertTarget(address, port, protocol);
 
     return new GenericKubernetesResourceBuilder()
         .withApiVersion("cilium.io/v2")
@@ -30,7 +30,7 @@ public class CiliumNetworkPolicyService {
         .endMetadata()
         .addToAdditionalProperties("spec", Map.of(
             "description", "L3 policy for " + name,
-            "egress", List.of(egressRule),
+            "egress", egressRules,
             "endpointSelector", Map.of("matchLabels", Map.of("network-policy-predefined-" + name, "enabled"))
         )).build();
   }
