@@ -64,3 +64,10 @@ hubble status
 
 hubble observe
 ```
+
+## Test Server (Nginx)
+
+```bash
+kubectx minikube
+kubectl apply -n default -f nginx.yaml
+```
