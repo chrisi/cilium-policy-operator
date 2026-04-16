@@ -6,26 +6,22 @@ metadata:
   namespace: default
 spec:
   targets:
-    - name: google-dns
-      address: 8.8.8.8/32
+    - name: core-dns
+      address: 8.8.8.8
       port: "53"
       protocol: UDP
     - name: my-internal-service
-      address: 10.0.0.0/24
-      port: "8080"
+      address: 192.168.178.32
+      port: "8080-8090"
       protocol: TCP
-    - name: external-website
+    - name: another-website
       address: 10.20.30.40/26
-      port: "80"
-      protocol: TCP
-    - name: internal-website
-      address: 10.20.30.40/26
-      port: "80"
+      port: "80,443"
       protocol: TCP
     - name: aad-api
       address: "10.26.0.228,10.26.0.229,apweideivmdc01.airplus.net,apweideivmdc02.airplus.net,apweideivmdc03.airplus.net,apweideivmdc04.airplus.net,apweideivmdc05.airplus.net"
-      port: "88,90-95"
-      protocol: TCP
+      port: "88"
+      protocol: ANY
     - name: azure-sql
       address: "*.worker.database.windows.net,apwessnasq001.database.windows.net,apwessnasq002.database.windows.net"
       port: "1433,11000-11999"
