@@ -2,7 +2,7 @@
 apiVersion: cilium.airplus.com/v1
 kind: TargetSystem
 metadata:
-  name: example-target-systems
+  name: example-targetsystems
   namespace: default
 spec:
   targets:
