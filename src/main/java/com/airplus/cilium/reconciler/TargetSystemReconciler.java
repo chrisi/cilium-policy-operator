@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 public class TargetSystemReconciler implements Reconciler<TargetSystem> {
 
     private static final Logger log = LoggerFactory.getLogger(TargetSystemReconciler.class);
+    private static final String MANAGED_BY_LABEL_KEY = "airplus.com/managed-by";
+    private static final String MANAGED_BY_LABEL_VALUE = "cilium-policy-operator";
     private final KubernetesClient client;
 
     public TargetSystemReconciler(KubernetesClient client) {
@@ -36,6 +38,9 @@ public class TargetSystemReconciler implements Reconciler<TargetSystem> {
         String namespace = resource.getMetadata().getNamespace();
         log.info("Reconciling TargetSystem: {} in namespace: {}", name, namespace);
 
+        UpdateControl<TargetSystem> updateControl = UpdateControl.patchStatus(resource);
+        updateControl.rescheduleAfter(60, java.util.concurrent.TimeUnit.SECONDS);
+
         var targets = resource.getSpec().getTargets();
         if (targets == null) {
             targets = List.of();
@@ -46,10 +51,14 @@ public class TargetSystemReconciler implements Reconciler<TargetSystem> {
                 .map(TargetSystemEntry::getName)
                 .collect(Collectors.toSet());
 
-        // 2. List all CCNPs and filter those owned by this TargetSystem
+        // 2. List all CCNPs and filter those owned by this TargetSystem and managed by this operator
         String uid = resource.getMetadata().getUid();
         client.genericKubernetesResources("cilium.io/v2", "CiliumClusterwideNetworkPolicy")
                 .list().getItems().stream()
+                .filter(ccnp -> {
+                    Map<String, String> labels = ccnp.getMetadata().getLabels();
+                    return labels != null && MANAGED_BY_LABEL_VALUE.equals(labels.get(MANAGED_BY_LABEL_KEY));
+                })
                 .filter(ccnp -> ccnp.getMetadata().getOwnerReferences().stream()
                         .anyMatch(ownerReference -> uid.equals(ownerReference.getUid())))
                 .filter(ccnp -> !currentTargetNames.contains(ccnp.getMetadata().getName()))
@@ -121,6 +130,7 @@ public class TargetSystemReconciler implements Reconciler<TargetSystem> {
                     .withKind("CiliumClusterwideNetworkPolicy")
                     .withNewMetadata()
                         .withName(targetName)
+                        .addToLabels(MANAGED_BY_LABEL_KEY, MANAGED_BY_LABEL_VALUE)
                         .addNewOwnerReference()
                             .withApiVersion(resource.getApiVersion())
                             .withKind(resource.getKind())
@@ -149,6 +159,6 @@ public class TargetSystemReconciler implements Reconciler<TargetSystem> {
         }
         resource.getStatus().setStatus("Ready");
 
-        return UpdateControl.patchStatus(resource);
+        return updateControl;
     }
 }
