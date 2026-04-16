@@ -1,0 +1,26 @@
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: core-dns
+spec:
+  description: L3 policy for google-dns
+  endpointSelector:
+    matchLabels:
+      network-policy-predefined-google-dns: enabled
+  egress:
+    - toCIDR:
+        - 192.168.1.15/32
+        - 10.0.4.55/32
+        - 172.16.20.10/32
+      toFQDNs:
+        - matchName: "api.example.com"
+        - matchPattern: "*.services.io"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: ANY
+        - ports:
+            - port: "53"
+              endPort: 12
+              protocol: ANY
+---

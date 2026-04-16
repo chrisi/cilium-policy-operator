@@ -18,28 +18,7 @@ public class CiliumNetworkPolicyService {
     String protocol = entry.getProtocol();
     String port = entry.getPort();
 
-    Map<String, Object> egressRule = Map.of(
-        "toFQDNs", List.of(Map.of("matchName", address)),
-        "toPorts", List.of(Map.of(
-            "ports", List.of(Map.of(
-                "port", port,
-                "protocol", protocol != null ? protocol.toUpperCase() : "TCP"
-            ))
-        ))
-    );
-
-    // If it's an IP range, it might need 'toCIDR' instead of 'toFQDNs'
-    if (address.matches("^[0-9./]+$")) {
-      egressRule = Map.of(
-          "toCIDR", List.of(address),
-          "toPorts", List.of(Map.of(
-              "ports", List.of(Map.of(
-                  "port", "443",
-                  "protocol", protocol != null ? protocol.toUpperCase() : "TCP"
-              ))
-          ))
-      );
-    }
+    Map<String, Object> egressRule = ConvertUtils.convertTarget(address, port, protocol);
 
     return new GenericKubernetesResourceBuilder()
         .withApiVersion("cilium.io/v2")
