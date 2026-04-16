@@ -14,11 +14,11 @@ spec:
       address: 10.0.0.0/24
       port: "8080"
       protocol: TCP
-#    - name: external-website
-#      address: 10.20.30.40/26
-#      port: "80"
-#      protocol: TCP
-    - name: internal-website
+    - name: external-website
       address: 10.20.30.40/26
+      port: "80"
+      protocol: TCP
+    - name: internal-website
+      address: 10.20.30.40/24
       port: "80"
       protocol: TCP

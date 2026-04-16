@@ -16,12 +16,12 @@ kubectl apply -f src/main/resources/crd.yaml
 
 ```bash
 kubectx minikube
-kubectl apply -f example-target-system.yaml
+kubectl apply -f example-targetsystem.yaml
 ```
 
 ```bash
 kubectx minikube
-kubectl delete -f example-target-system.yaml
+kubectl delete -f example-targetsystem.yaml
 ```
 
 ```bash
