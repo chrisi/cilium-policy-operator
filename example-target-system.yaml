@@ -7,14 +7,18 @@ metadata:
 spec:
   targets:
     - name: google-dns
-      address: 8.8.8.8
-      portal: DNS
+      address: 8.8.8.8/32
+      port: "53"
       protocol: UDP
     - name: my-internal-service
       address: 10.0.0.0/24
-      portal: Internal
+      port: "8080"
       protocol: TCP
-    - name: external-website
-      address: example.com
-      portal: Web
-      protocol: HTTPS
+#    - name: external-website
+#      address: 10.20.30.40/26
+#      port: "80"
+#      protocol: TCP
+    - name: internal-website
+      address: 10.20.30.40/26
+      port: "80"
+      protocol: TCP
