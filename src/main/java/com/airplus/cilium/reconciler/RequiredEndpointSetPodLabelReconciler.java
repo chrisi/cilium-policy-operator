@@ -31,122 +31,110 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class RequiredEndpointSetPodLabelReconciler implements Reconciler<Pod> {
 
-    private final KubernetesClient client;
+  private final KubernetesClient client;
 
-    @Override
-    public List<EventSource<?, Pod>> prepareEventSources(EventSourceContext<Pod> context) {
-        InformerEventSourceConfiguration<RequiredEndpointSet> configuration = InformerEventSourceConfiguration
-                .from(RequiredEndpointSet.class, Pod.class)
-                .withSecondaryToPrimaryMapper(res -> {
-                    Map<String, String> labels = res.getSpec().getTargetMatchLabels();
-                    if (labels == null || labels.isEmpty()) {
-                        return Collections.emptySet();
-                    }
-                    return client.pods().inAnyNamespace().withLabels(labels).list().getItems().stream()
-                            .map(ResourceID::fromResource)
-                            .collect(Collectors.toSet());
-                })
-                //TODO: detaching of the RequiredEndpointSets from the pod by renaming the targetSelectorLables is not yet implemented.
-                .withOnDeleteFilter((res, deletedFinalStateUnknown) -> true)
-                .build();
+  @Override
+  public List<EventSource<?, Pod>> prepareEventSources(EventSourceContext<Pod> context) {
+    InformerEventSourceConfiguration<RequiredEndpointSet> configuration = InformerEventSourceConfiguration
+        .from(RequiredEndpointSet.class, Pod.class)
+        .withSecondaryToPrimaryMapper(res -> {
+          Map<String, String> labels = res.getSpec().getTargetMatchLabels();
+          if (labels == null || labels.isEmpty()) {
+            return Collections.emptySet();
+          }
+          return client.pods().inAnyNamespace().withLabels(labels).list().getItems().stream()
+              .map(ResourceID::fromResource)
+              .collect(Collectors.toSet());
+        })
+        //TODO: detaching of the RequiredEndpointSets from the pod by renaming the targetSelectorLables is not yet implemented.
+        .withOnDeleteFilter((res, deletedFinalStateUnknown) -> true)
+        .build();
 
-        return List.of(new InformerEventSource<>(configuration, context));
+    return List.of(new InformerEventSource<>(configuration, context));
+  }
+
+  @Override
+  public UpdateControl<Pod> reconcile(Pod pod, Context<Pod> context) {
+    String name = pod.getMetadata().getName();
+    String namespace = pod.getMetadata().getNamespace();
+
+    if (pod.getMetadata().getDeletionTimestamp() != null) {
+      return UpdateControl.noUpdate();
     }
 
-    @Override
-    public UpdateControl<Pod> reconcile(Pod pod, Context<Pod> context) {
-        String name = pod.getMetadata().getName();
-        String namespace = pod.getMetadata().getNamespace();
-
-        if (pod.getMetadata().getDeletionTimestamp() != null) {
-            return UpdateControl.noUpdate();
-        }
-
-        Map<String, String> podLabels = pod.getMetadata().getLabels();
-        if (podLabels == null) {
-            podLabels = new HashMap<>();
-        }
-
-        List<RequiredEndpointSet> requiredEndpointSets = client.resources(RequiredEndpointSet.class)
-                .inAnyNamespace()
-                .list()
-                .getItems();
-
-        Map<String, String> labelsToAdd = new HashMap<>();
-
-        for (RequiredEndpointSet res : requiredEndpointSets) {
-            Map<String, String> targetMatchLabels = res.getSpec().getTargetMatchLabels();
-            if (targetMatchLabels != null && !targetMatchLabels.isEmpty()) {
-                if (podLabelsMatch(podLabels, targetMatchLabels)) {
-                    List<String> predefinedEndpoints = res.getSpec().getPredefinedEndpoints();
-                    if (predefinedEndpoints != null) {
-                        for (String endpoint : predefinedEndpoints) {
-                            labelsToAdd.put("com.airplus.cilium.predefined-endpoint/" + endpoint, "enabled");
-                        }
-                    }
-                }
-            }
-        }
-
-        // Identify labels that should be removed (predefined-endpoint labels that are no longer required)
-        boolean hasLabelsToRemove = false;
-        for (String key : podLabels.keySet()) {
-            if (key.startsWith("com.airplus.cilium.predefined-endpoint/") && !labelsToAdd.containsKey(key)) {
-                hasLabelsToRemove = true;
-                break;
-            }
-        }
-
-        if (labelsToAdd.isEmpty() && !hasLabelsToRemove) {
-            return UpdateControl.noUpdate();
-        }
-
-        // Check if labels are already present/removed to avoid infinite reconciliation loops
-        boolean needsUpdate = false;
-        
-        // Check for missing or differing labels
-        for (Map.Entry<String, String> entry : labelsToAdd.entrySet()) {
-            if (!entry.getValue().equals(podLabels.get(entry.getKey()))) {
-                needsUpdate = true;
-                break;
-            }
-        }
-        
-        // Check for labels that should be gone
-        if (!needsUpdate && hasLabelsToRemove) {
-            needsUpdate = true;
-        }
-
-        if (needsUpdate) {
-            log.info("Updating predefined endpoint labels for Pod {} in namespace {}", name, namespace);
-            
-            // For Server-Side Apply, we only include the labels we want to manage/add.
-            // Labels that we previously managed but are now missing from the patch will be removed by K8s SSA.
-            // This avoids sending null values which might be problematic or redundant.
-            
-            Pod patch = new PodBuilder()
-                    .withNewMetadata()
-                        .withName(name)
-                        .withNamespace(namespace)
-                        .withLabels(labelsToAdd)
-                    .endMetadata()
-                    .build();
-
-            PatchContext patchContext = PatchContext.of(PatchType.SERVER_SIDE_APPLY);
-            patchContext.setForce(true); //TODO: impl opt in
-            client.pods().inNamespace(namespace).withName(name).patch(patchContext, patch);
-        }
-
-        return UpdateControl.noUpdate();
+    final var podLabels = pod.getMetadata().getLabels();
+    if (podLabels == null || podLabels.isEmpty()) {
+      log.debug("pod '{}' in namespace '{}' has no labels so cannot be targeted", name, namespace);
+      return UpdateControl.noUpdate();
     }
 
-    private boolean podLabelsMatch(Map<String, String> podLabels, Map<String, String> targetMatchLabels) {
-        for (Map.Entry<String, String> entry : targetMatchLabels.entrySet()) {
-            String podValue = podLabels.get(entry.getKey());
-            if (podValue == null || !podValue.equals(entry.getValue())) {
-                return false;
-            }
+    // Find all RequiredEndpointSets that are relevant for this pod
+    var sets = client.resources(RequiredEndpointSet.class).list().getItems().stream()
+        .filter(res -> podLabelsMatch(podLabels, res.getSpec().getTargetMatchLabels())).toList();
+
+    // Collect labels that should be added
+    var labelsToAdd = new HashMap<String, String>();
+    for (var set : sets) {
+      var eps = set.getSpec().getPredefinedEndpoints();
+      if (eps != null) {
+        for (String ep : eps) {
+          labelsToAdd.put("com.airplus.cilium.predefined-endpoint/" + ep, "enabled");
         }
-        return true;
+      }
     }
+
+    // Check if there are labels that should be removed, since Server-Side Apply automatically removes
+    // labels that are not present in the patch, we don't need to collect them but just trigger an update
+    boolean hasLabelsToRemove = false;
+    for (var key : podLabels.keySet()) {
+      if (key.startsWith("com.airplus.cilium.predefined-endpoint/") && !labelsToAdd.containsKey(key)) {
+        hasLabelsToRemove = true;
+        break;
+      }
+    }
+
+    // End reconcile here if nothing to do
+    if (labelsToAdd.isEmpty() && !hasLabelsToRemove) {
+      return UpdateControl.noUpdate();
+    }
+
+    boolean labelsChanged = false;
+    for (var entry : labelsToAdd.entrySet()) {
+      if (!entry.getValue().equals(podLabels.get(entry.getKey()))) {
+        labelsChanged = true;
+        break;
+      }
+    }
+
+    if (labelsChanged || hasLabelsToRemove) {
+      log.info("updating predefined endpoint labels for pod '{}' in namespace '{}'", name, namespace);
+
+      // For Server-Side Apply, we only include the labels we want to manage/add.
+      // Labels that we previously managed but are now missing from the patch will be removed by K8s SSA.
+      // This avoids sending null values which might be problematic or redundant.
+      var patch = new PodBuilder()
+          .withNewMetadata()
+          .withName(name)
+          .withNamespace(namespace)
+          .withLabels(labelsToAdd)
+          .endMetadata()
+          .build();
+
+      var ctx = PatchContext.of(PatchType.SERVER_SIDE_APPLY);
+      ctx.setForce(true); //TODO: impl opt in
+      client.pods().inNamespace(namespace).withName(name).patch(ctx, patch);
+    }
+
+    return UpdateControl.noUpdate();
+  }
+
+  private boolean podLabelsMatch(Map<String, String> podLabels, Map<String, String> targetMatchLabels) {
+    for (var entry : targetMatchLabels.entrySet()) {
+      var podValue = podLabels.get(entry.getKey());
+      if (podValue == null || !podValue.equals(entry.getValue())) {
+        return false;
+      }
+    }
+    return true;
+  }
 }

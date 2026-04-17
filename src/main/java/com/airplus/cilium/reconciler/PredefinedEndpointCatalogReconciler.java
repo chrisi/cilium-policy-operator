@@ -3,6 +3,8 @@ package com.airplus.cilium.reconciler;
 import com.airplus.cilium.crd.PredefinedEndpointCatalog;
 import com.airplus.cilium.crd.Endpoint;
 import com.airplus.cilium.crd.PredefinedEndpointCatalogStatus;
+import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.OwnerReference;
 import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.airplus.cilium.reconciler.Global.*;
+
 @Component
 @ControllerConfiguration
 @RequiredArgsConstructor
@@ -26,67 +30,48 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
   private final CiliumNetworkPolicyService policyService;
 
   @Override
-  public UpdateControl<PredefinedEndpointCatalog> reconcile(PredefinedEndpointCatalog resource, Context<PredefinedEndpointCatalog> context) {
-    String name = resource.getMetadata().getName();
-    String namespace = resource.getMetadata().getNamespace();
-    log.info("Reconciling PredefinedEndpointCatalog: {} in namespace: {}", name, namespace);
+  public UpdateControl<PredefinedEndpointCatalog> reconcile(PredefinedEndpointCatalog catalog, Context<PredefinedEndpointCatalog> context) {
+    String name = catalog.getMetadata().getName();
+    String namespace = catalog.getMetadata().getNamespace();
+    log.info("reconciling PredefinedEndpointCatalog {} in namespace: {}", name, namespace);
 
-    UpdateControl<PredefinedEndpointCatalog> updateControl = UpdateControl.patchStatus(resource);
+    UpdateControl<PredefinedEndpointCatalog> updateControl = UpdateControl.patchStatus(catalog);
     updateControl.rescheduleAfter(60, java.util.concurrent.TimeUnit.SECONDS);
 
-    var endpoints = resource.getSpec().getEndpoints();
-    if (endpoints == null) {
-      endpoints = List.of();
-    }
+    var endpoints = catalog.getSpec().getEndpoints();
 
-    // 1. Collect names of endpoints in the current spec
-    var curEndpointsName = endpoints.stream()
-        .map(Endpoint::getName)
-        .collect(Collectors.toSet());
-
-    // 2. List all CCNPs and filter those owned by this TargetSystem and managed by this operator
-    String uid = resource.getMetadata().getUid();
-    client.genericKubernetesResources("cilium.io/v2", "CiliumClusterwideNetworkPolicy")
-        .withLabel(Global.MANAGED_BY_LABEL_KEY, Global.MANAGED_BY_LABEL_VALUE)
-        .list().getItems().stream()
-        .filter(ccnp -> ccnp.getMetadata().getOwnerReferences().stream()
-            .anyMatch(ownerReference -> uid.equals(ownerReference.getUid())))
-        .filter(ccnp -> !curEndpointsName.contains(ccnp.getMetadata().getName()))
-        .forEach(ccnp -> {
-          log.info("Deleting orphaned CCNP: {}", ccnp.getMetadata().getName());
-          client.genericKubernetesResources("cilium.io/v2", "CiliumClusterwideNetworkPolicy")
-              .resource(ccnp)
-              .delete();
-        });
-
-    if (endpoints.isEmpty()) {
-      log.warn("No entry provided for Cala: {}", name);
+    if (endpoints == null || endpoints.isEmpty()) {
+      log.warn("no entries provided in PredefinedEndpointCatalog '{}'", name);
       return UpdateControl.noUpdate();
     }
 
-    var ownRef = new OwnerReferenceBuilder()
-        .withApiVersion(resource.getApiVersion())
-        .withKind(resource.getKind())
-        .withName(resource.getMetadata().getName())
-        .withUid(resource.getMetadata().getUid())
-        .withController(true)
-        .withBlockOwnerDeletion(true)
-        .build();
+    var allEndpointName = endpoints.stream().map(Endpoint::getName).collect(Collectors.toSet());
 
+    log.info("processing endpoints from PredefinedEndpointCatalog '{}'", name);
+
+    // delete orphaned policies
+    String catalogUid = catalog.getMetadata().getUid();
+    client.genericKubernetesResources(CILIO, CCNP).withLabel(MANAGED_BY_LABEL_KEY, MANAGED_BY_LABEL_VALUE)
+        .list().getItems().stream()
+        .filter(ccnp -> ccnp.getMetadata().getOwnerReferences().stream()
+            .anyMatch(ownerReference -> catalogUid.equals(ownerReference.getUid())))
+        .filter(ccnp -> !allEndpointName.contains(ccnp.getMetadata().getName()))
+        .forEach(ccnp -> {
+          log.info("deleting orphaned {} '{}'", CCNP, ccnp.getMetadata().getName());
+          client.genericKubernetesResources(CILIO, CCNP).resource(ccnp).delete();
+        });
+
+    // apply new policies or change existing ones
     for (var endpoint : endpoints) {
-      var ccnp = policyService.createCiliumNetworkPolicy(endpoint, ownRef);
-
-      client.genericKubernetesResources("cilium.io/v2", "CiliumClusterwideNetworkPolicy")
-          .resource(ccnp)
-          .serverSideApply();
-
-      log.info("CCNP {} created", endpoint.getName());
+      var ccnp = policyService.createCiliumNetworkPolicy(endpoint, K8sUtils.createOwnerReference(catalog));
+      log.info("applying {} '{}'", CCNP, endpoint.getName());
+      client.genericKubernetesResources(CILIO, CCNP).resource(ccnp).serverSideApply();
     }
 
-    if (resource.getStatus() == null) {
-      resource.setStatus(new PredefinedEndpointCatalogStatus());
+    if (catalog.getStatus() == null) {
+      catalog.setStatus(new PredefinedEndpointCatalogStatus());
     }
-    resource.getStatus().setStatus("Ready");
+    catalog.getStatus().setStatus("Ready");
 
     return updateControl;
   }
