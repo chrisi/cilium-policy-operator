@@ -8,23 +8,48 @@ import io.fabric8.kubernetes.client.dsl.base.PatchContext;
 import io.fabric8.kubernetes.client.dsl.base.PatchType;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
+import io.javaoperatorsdk.operator.api.reconciler.EventSourceContext;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
-import lombok.RequiredArgsConstructor;
+import io.javaoperatorsdk.operator.processing.event.ResourceID;
+import io.javaoperatorsdk.operator.processing.event.source.EventSource;
+import io.javaoperatorsdk.operator.processing.event.source.informer.InformerEventSource;
+import io.javaoperatorsdk.operator.api.config.informer.InformerEventSourceConfiguration;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Component
 @ControllerConfiguration(generationAwareEventProcessing = false)
-@RequiredArgsConstructor
 @Slf4j
+@AllArgsConstructor
 public class RequiredEndpointSetPodLabelReconciler implements Reconciler<Pod> {
 
     private final KubernetesClient client;
+
+    @Override
+    public List<EventSource<?, Pod>> prepareEventSources(EventSourceContext<Pod> context) {
+        InformerEventSourceConfiguration<RequiredEndpointSet> configuration = InformerEventSourceConfiguration
+                .from(RequiredEndpointSet.class, Pod.class)
+                .withSecondaryToPrimaryMapper(res -> {
+                    Map<String, String> labels = res.getSpec().getTargetMatchLabels();
+                    if (labels == null || labels.isEmpty()) {
+                        return Collections.emptySet();
+                    }
+                    return client.pods().inAnyNamespace().withLabels(labels).list().getItems().stream()
+                            .map(ResourceID::fromResource)
+                            .collect(Collectors.toSet());
+                })
+                .build();
+
+        return List.of(new InformerEventSource<>(configuration, context));
+    }
 
     @Override
     public UpdateControl<Pod> reconcile(Pod pod, Context<Pod> context) {
