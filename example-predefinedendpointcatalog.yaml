@@ -2,10 +2,10 @@
 apiVersion: cilium.airplus.com/v1
 kind: TargetSystem
 metadata:
-  name: example-targetsystems
+  name: example-pec
   namespace: default
 spec:
-  targets:
+  endpoints:
     - name: core-dns
       address: 8.8.8.8
       port: "53"

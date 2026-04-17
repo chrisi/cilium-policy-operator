@@ -10,18 +10,19 @@ kubectl apply -f deploy.yaml
 ```bash
 kubectx minikube
 kubectl apply -f src/main/resources/predefinedendpointcatalog-crd.yaml
+kubectl apply -f src/main/resources/requiredendpointset-crd.yaml
 ```
 
 ## Install example-target-system
 
 ```bash
 kubectx minikube
-kubectl apply -f example-targetsystem.yaml
+kubectl apply -f example-predefinedendpointcatalog.yaml
 ```
 
 ```bash
 kubectx minikube
-kubectl delete -f example-targetsystem.yaml
+kubectl delete -f example-predefinedendpointcatalog.yaml
 ```
 
 ```bash
