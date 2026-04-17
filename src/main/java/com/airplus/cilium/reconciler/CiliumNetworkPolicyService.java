@@ -12,11 +12,11 @@ import java.util.Map;
 @Service
 public class CiliumNetworkPolicyService {
 
-  public GenericKubernetesResource createCiliumNetworkPolicy(Endpoint entry, OwnerReference ownRef) {
-    String name = entry.getName();
-    String address = entry.getAddress();
-    String protocol = entry.getProtocol();
-    String port = entry.getPort();
+  public GenericKubernetesResource createCiliumNetworkPolicy(Endpoint endpoint, OwnerReference ownRef) {
+    String name = endpoint.getName();
+    String address = endpoint.getAddress();
+    String protocol = endpoint.getProtocol();
+    String port = endpoint.getPort();
 
     List<Map<String, Object>> egressRules = ConvertUtils.convertTarget(address, port, protocol);
 
