@@ -46,6 +46,7 @@ public class RequiredEndpointSetPodLabelReconciler implements Reconciler<Pod> {
                             .map(ResourceID::fromResource)
                             .collect(Collectors.toSet());
                 })
+                //TODO: detaching of the RequiredEndpointSets from the pod by renaming the targetSelectorLables is not yet implemented.
                 .withOnDeleteFilter((res, deletedFinalStateUnknown) -> true)
                 .build();
 
