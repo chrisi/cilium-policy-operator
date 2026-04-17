@@ -5,6 +5,8 @@ metadata:
   name: example-res
   namespace: default
 spec:
+  targetMatchLabels:
+    app: nginx
   predefinedEndpoints:
     - aad-api
     - azure-sql

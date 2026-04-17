@@ -25,6 +25,10 @@ spec:
             spec:
               type: object
               properties:
+                targetMatchLabels:
+                  type: object
+                  additionalProperties:
+                    type: string
                 predefinedEndpoints:
                   type: array
                   items:
