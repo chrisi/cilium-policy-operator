@@ -18,11 +18,14 @@ kubectl apply -f src/main/resources/requiredendpointset-crd.yaml
 ```bash
 kubectx minikube
 kubectl apply -f example-predefinedendpointcatalog.yaml
+kubectl apply -f example-requiredendpointset.yaml
+
 ```
 
 ```bash
 kubectx minikube
 kubectl delete -f example-predefinedendpointcatalog.yaml
+kubectl delete -f example-requiredendpointset.yaml
 ```
 
 ```bash

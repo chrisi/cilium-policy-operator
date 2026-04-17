@@ -2,7 +2,7 @@
 apiVersion: cilium.airplus.com/v1
 kind: RequiredEndpointSet
 metadata:
-  name: example-pec
+  name: example-res
   namespace: default
 spec:
   predefinedEndpoints:

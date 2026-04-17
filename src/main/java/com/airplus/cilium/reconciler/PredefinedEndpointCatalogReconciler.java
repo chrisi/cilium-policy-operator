@@ -29,7 +29,7 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
   public UpdateControl<PredefinedEndpointCatalog> reconcile(PredefinedEndpointCatalog resource, Context<PredefinedEndpointCatalog> context) {
     String name = resource.getMetadata().getName();
     String namespace = resource.getMetadata().getNamespace();
-    log.info("Reconciling TargetSystem: {} in namespace: {}", name, namespace);
+    log.info("Reconciling PredefinedEndpointCatalog: {} in namespace: {}", name, namespace);
 
     UpdateControl<PredefinedEndpointCatalog> updateControl = UpdateControl.patchStatus(resource);
     updateControl.rescheduleAfter(60, java.util.concurrent.TimeUnit.SECONDS);
@@ -60,7 +60,7 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
         });
 
     if (endpoints.isEmpty()) {
-      log.warn("No entri provided for Cala: {}", name);
+      log.warn("No entry provided for Cala: {}", name);
       return UpdateControl.noUpdate();
     }
 
@@ -73,14 +73,14 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
         .withBlockOwnerDeletion(true)
         .build();
 
-    for (var target : endpoints) {
-      var ccnp = policyService.createCiliumNetworkPolicy(target, ownRef);
+    for (var endpoint : endpoints) {
+      var ccnp = policyService.createCiliumNetworkPolicy(endpoint, ownRef);
 
       client.genericKubernetesResources("cilium.io/v2", "CiliumClusterwideNetworkPolicy")
           .resource(ccnp)
           .serverSideApply();
 
-      log.info("CCNP {} created", target.getName());
+      log.info("CCNP {} created", endpoint.getName());
     }
 
     if (resource.getStatus() == null) {
