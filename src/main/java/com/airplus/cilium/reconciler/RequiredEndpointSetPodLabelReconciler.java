@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-@ControllerConfiguration
+@ControllerConfiguration(generationAwareEventProcessing = false)
 @RequiredArgsConstructor
 @Slf4j
 public class RequiredEndpointSetPodLabelReconciler implements Reconciler<Pod> {
@@ -61,31 +61,56 @@ public class RequiredEndpointSetPodLabelReconciler implements Reconciler<Pod> {
             }
         }
 
-        if (labelsToAdd.isEmpty()) {
+        // Identify labels that should be removed (predefined-endpoint labels that are no longer required)
+        Map<String, String> labelsToRemove = new HashMap<>();
+        for (String key : podLabels.keySet()) {
+            if (key.startsWith("com.airplus.cilium.predefined-endpoint/") && !labelsToAdd.containsKey(key)) {
+                labelsToRemove.put(key, null);
+            }
+        }
+
+        if (labelsToAdd.isEmpty() && labelsToRemove.isEmpty()) {
             return UpdateControl.noUpdate();
         }
 
-        // Check if labels are already present to avoid infinite reconciliation loops
+        // Check if labels are already present/removed to avoid infinite reconciliation loops
         boolean needsUpdate = false;
+        
+        // Check for missing or differing labels
         for (Map.Entry<String, String> entry : labelsToAdd.entrySet()) {
             if (!entry.getValue().equals(podLabels.get(entry.getKey()))) {
                 needsUpdate = true;
                 break;
             }
         }
+        
+        // Check for labels that should be gone
+        if (!needsUpdate) {
+            for (String key : labelsToRemove.keySet()) {
+                if (podLabels.containsKey(key)) {
+                    needsUpdate = true;
+                    break;
+                }
+            }
+        }
 
         if (needsUpdate) {
-            log.info("Adding predefined endpoint labels to Pod {} in namespace {}", name, namespace);
+            log.info("Updating predefined endpoint labels for Pod {} in namespace {}", name, namespace);
             
+            Map<String, String> allPatchLabels = new HashMap<>(labelsToAdd);
+            allPatchLabels.putAll(labelsToRemove);
+
             Pod patch = new PodBuilder()
                     .withNewMetadata()
                         .withName(name)
                         .withNamespace(namespace)
-                        .withLabels(labelsToAdd)
+                        .withLabels(allPatchLabels)
                     .endMetadata()
                     .build();
 
-            client.pods().inNamespace(namespace).withName(name).patch(PatchContext.of(PatchType.SERVER_SIDE_APPLY), patch);
+            PatchContext patchContext = PatchContext.of(PatchType.SERVER_SIDE_APPLY);
+            patchContext.setForce(true); //TODO: impl opt in
+            client.pods().inNamespace(namespace).withName(name).patch(patchContext, patch);
         }
 
         return UpdateControl.noUpdate();
