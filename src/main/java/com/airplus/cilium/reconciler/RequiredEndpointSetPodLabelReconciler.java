@@ -62,14 +62,15 @@ public class RequiredEndpointSetPodLabelReconciler implements Reconciler<Pod> {
         }
 
         // Identify labels that should be removed (predefined-endpoint labels that are no longer required)
-        Map<String, String> labelsToRemove = new HashMap<>();
+        boolean hasLabelsToRemove = false;
         for (String key : podLabels.keySet()) {
             if (key.startsWith("com.airplus.cilium.predefined-endpoint/") && !labelsToAdd.containsKey(key)) {
-                labelsToRemove.put(key, null);
+                hasLabelsToRemove = true;
+                break;
             }
         }
 
-        if (labelsToAdd.isEmpty() && labelsToRemove.isEmpty()) {
+        if (labelsToAdd.isEmpty() && !hasLabelsToRemove) {
             return UpdateControl.noUpdate();
         }
 
@@ -85,26 +86,22 @@ public class RequiredEndpointSetPodLabelReconciler implements Reconciler<Pod> {
         }
         
         // Check for labels that should be gone
-        if (!needsUpdate) {
-            for (String key : labelsToRemove.keySet()) {
-                if (podLabels.containsKey(key)) {
-                    needsUpdate = true;
-                    break;
-                }
-            }
+        if (!needsUpdate && hasLabelsToRemove) {
+            needsUpdate = true;
         }
 
         if (needsUpdate) {
             log.info("Updating predefined endpoint labels for Pod {} in namespace {}", name, namespace);
             
-            Map<String, String> allPatchLabels = new HashMap<>(labelsToAdd);
-            allPatchLabels.putAll(labelsToRemove);
-
+            // For Server-Side Apply, we only include the labels we want to manage/add.
+            // Labels that we previously managed but are now missing from the patch will be removed by K8s SSA.
+            // This avoids sending null values which might be problematic or redundant.
+            
             Pod patch = new PodBuilder()
                     .withNewMetadata()
                         .withName(name)
                         .withNamespace(namespace)
-                        .withLabels(allPatchLabels)
+                        .withLabels(labelsToAdd)
                     .endMetadata()
                     .build();
 
