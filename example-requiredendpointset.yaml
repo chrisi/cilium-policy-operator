@@ -1,0 +1,19 @@
+---
+apiVersion: cilium.airplus.com/v1
+kind: RequiredEndpointSet
+metadata:
+  name: example-pec
+  namespace: default
+spec:
+  predefinedEndpoints:
+    - aad-api
+    - azure-sql
+  customEndpoints:
+    - name: web-id
+      address: 192.168.178.32
+      port: "8080"
+      protocol: TCP
+    - name: tsys
+      address: 10.20.30.40/26
+      port: "7676"
+      protocol: TCP

@@ -25,7 +25,7 @@ spec:
             spec:
               type: object
               properties:
-                targets:
+                endpoints:
                   type: array
                   items:
                     type: object

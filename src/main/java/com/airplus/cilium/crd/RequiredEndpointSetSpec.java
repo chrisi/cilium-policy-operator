@@ -4,5 +4,5 @@ import java.util.List;
 
 public class RequiredEndpointSetSpec {
   private List<String> predefinedEndpoints;
-  private List<Endpoint> customEndpointCatalogs;
+  private List<Endpoint> customEndpoints;
 }

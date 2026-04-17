@@ -29,7 +29,7 @@ spec:
                   type: array
                   items:
                     type: string
-                customEndpointCatalogs:
+                customEndpoints:
                   type: array
                   items:
                     type: object

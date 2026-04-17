@@ -1,6 +1,6 @@
 ---
 apiVersion: cilium.airplus.com/v1
-kind: TargetSystem
+kind: PredefinedEndpointCatalog
 metadata:
   name: example-pec
   namespace: default
