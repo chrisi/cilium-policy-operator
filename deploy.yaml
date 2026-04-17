@@ -9,7 +9,10 @@ metadata:
   name: cilium-policy-operator
 rules:
   - apiGroups: [ "cilium.airplus.com" ]
-    resources: [ "targetsystems", "targetsystems/status", "targetsystems/finalizers" ]
+    resources: [ "predefinedendpointcatalogs", "predefinedendpointcatalogs/status", "predefinedendpointcatalogs/finalizers" ]
+    verbs: [ "get", "list", "watch", "create", "update", "patch", "delete" ]
+  - apiGroups: [ "cilium.airplus.com" ]
+    resources: [ "requiredendpointsets", "requiredendpointsets/status", "requiredendpointsets/finalizers" ]
     verbs: [ "get", "list", "watch", "create", "update", "patch", "delete" ]
   - apiGroups: [ "networking.k8s.io" ]
     resources: [ "networkpolicies" ]
@@ -17,6 +20,9 @@ rules:
   - apiGroups: [ "cilium.io" ]
     resources: [ "ciliumnetworkpolicies", "ciliumclusterwidenetworkpolicies" ]
     verbs: [ "get", "list", "watch", "create", "update", "patch", "delete" ]
+  - apiGroups: [ "" ]
+    resources: [ "pods", "nodes", "namespaces", "services", "endpoints" ]
+    verbs: [ "get", "list", "watch", "patch" ]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
