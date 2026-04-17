@@ -5,6 +5,6 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class TargetSystemStatus {
+public class PredefinedEndpointCatalogStatus {
     private String status;
 }

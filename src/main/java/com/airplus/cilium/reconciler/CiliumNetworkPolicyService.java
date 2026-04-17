@@ -1,6 +1,6 @@
 package com.airplus.cilium.reconciler;
 
-import com.airplus.cilium.crd.TargetSystemEntry;
+import com.airplus.cilium.crd.Endpoint;
 import io.fabric8.kubernetes.api.model.GenericKubernetesResource;
 import io.fabric8.kubernetes.api.model.GenericKubernetesResourceBuilder;
 import io.fabric8.kubernetes.api.model.OwnerReference;
@@ -12,7 +12,7 @@ import java.util.Map;
 @Service
 public class CiliumNetworkPolicyService {
 
-  public GenericKubernetesResource createCiliumNetworkPolicy(TargetSystemEntry entry, OwnerReference ownRef) {
+  public GenericKubernetesResource createCiliumNetworkPolicy(Endpoint entry, OwnerReference ownRef) {
     String name = entry.getName();
     String address = entry.getAddress();
     String protocol = entry.getProtocol();

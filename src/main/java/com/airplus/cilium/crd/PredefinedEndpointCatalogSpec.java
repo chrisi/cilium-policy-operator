@@ -7,6 +7,6 @@ import java.util.List;
 
 @Getter
 @Setter
-public class TargetSystemSpec {
-    private List<TargetSystemEntry> targets;
+public class PredefinedEndpointCatalogSpec {
+    private List<Endpoint> endpoints;
 }

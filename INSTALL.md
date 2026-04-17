@@ -9,7 +9,7 @@ kubectl apply -f deploy.yaml
 
 ```bash
 kubectx minikube
-kubectl apply -f src/main/resources/crd.yaml
+kubectl apply -f src/main/resources/predefinedendpointcatalog-crd.yaml
 ```
 
 ## Install example-target-system

@@ -1,8 +1,8 @@
 package com.airplus.cilium.reconciler;
 
-import com.airplus.cilium.crd.TargetSystem;
-import com.airplus.cilium.crd.TargetSystemEntry;
-import com.airplus.cilium.crd.TargetSystemStatus;
+import com.airplus.cilium.crd.PredefinedEndpointCatalog;
+import com.airplus.cilium.crd.Endpoint;
+import com.airplus.cilium.crd.PredefinedEndpointCatalogStatus;
 import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
@@ -20,28 +20,28 @@ import java.util.stream.Collectors;
 @ControllerConfiguration
 @RequiredArgsConstructor
 @Slf4j
-public class TargetSystemReconciler implements Reconciler<TargetSystem> {
+public class PredefinedEndpointCatalogReconciler implements Reconciler<PredefinedEndpointCatalog> {
 
   private final KubernetesClient client;
   private final CiliumNetworkPolicyService policyService;
 
   @Override
-  public UpdateControl<TargetSystem> reconcile(TargetSystem resource, Context<TargetSystem> context) {
+  public UpdateControl<PredefinedEndpointCatalog> reconcile(PredefinedEndpointCatalog resource, Context<PredefinedEndpointCatalog> context) {
     String name = resource.getMetadata().getName();
     String namespace = resource.getMetadata().getNamespace();
     log.info("Reconciling TargetSystem: {} in namespace: {}", name, namespace);
 
-    UpdateControl<TargetSystem> updateControl = UpdateControl.patchStatus(resource);
+    UpdateControl<PredefinedEndpointCatalog> updateControl = UpdateControl.patchStatus(resource);
     updateControl.rescheduleAfter(60, java.util.concurrent.TimeUnit.SECONDS);
 
-    var targets = resource.getSpec().getTargets();
-    if (targets == null) {
-      targets = List.of();
+    var endpoints = resource.getSpec().getEndpoints();
+    if (endpoints == null) {
+      endpoints = List.of();
     }
 
-    // 1. Collect names of targets in the current spec
-    var currentTargetNames = targets.stream()
-        .map(TargetSystemEntry::getName)
+    // 1. Collect names of endpoints in the current spec
+    var curEndpointsName = endpoints.stream()
+        .map(Endpoint::getName)
         .collect(Collectors.toSet());
 
     // 2. List all CCNPs and filter those owned by this TargetSystem and managed by this operator
@@ -51,7 +51,7 @@ public class TargetSystemReconciler implements Reconciler<TargetSystem> {
         .list().getItems().stream()
         .filter(ccnp -> ccnp.getMetadata().getOwnerReferences().stream()
             .anyMatch(ownerReference -> uid.equals(ownerReference.getUid())))
-        .filter(ccnp -> !currentTargetNames.contains(ccnp.getMetadata().getName()))
+        .filter(ccnp -> !curEndpointsName.contains(ccnp.getMetadata().getName()))
         .forEach(ccnp -> {
           log.info("Deleting orphaned CCNP: {}", ccnp.getMetadata().getName());
           client.genericKubernetesResources("cilium.io/v2", "CiliumClusterwideNetworkPolicy")
@@ -59,8 +59,8 @@ public class TargetSystemReconciler implements Reconciler<TargetSystem> {
               .delete();
         });
 
-    if (targets.isEmpty()) {
-      log.warn("No targets provided for TargetSystem: {}", name);
+    if (endpoints.isEmpty()) {
+      log.warn("No entri provided for Cala: {}", name);
       return UpdateControl.noUpdate();
     }
 
@@ -73,7 +73,7 @@ public class TargetSystemReconciler implements Reconciler<TargetSystem> {
         .withBlockOwnerDeletion(true)
         .build();
 
-    for (var target : targets) {
+    for (var target : endpoints) {
       var ccnp = policyService.createCiliumNetworkPolicy(target, ownRef);
 
       client.genericKubernetesResources("cilium.io/v2", "CiliumClusterwideNetworkPolicy")
@@ -84,7 +84,7 @@ public class TargetSystemReconciler implements Reconciler<TargetSystem> {
     }
 
     if (resource.getStatus() == null) {
-      resource.setStatus(new TargetSystemStatus());
+      resource.setStatus(new PredefinedEndpointCatalogStatus());
     }
     resource.getStatus().setStatus("Ready");
 

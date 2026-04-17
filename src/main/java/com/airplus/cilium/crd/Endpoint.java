@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class TargetSystemEntry {
+public class Endpoint {
     private String name;
     private String address;
     private String port;
