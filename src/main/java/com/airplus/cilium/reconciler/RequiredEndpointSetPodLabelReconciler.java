@@ -46,6 +46,7 @@ public class RequiredEndpointSetPodLabelReconciler implements Reconciler<Pod> {
                             .map(ResourceID::fromResource)
                             .collect(Collectors.toSet());
                 })
+                .withOnDeleteFilter((res, deletedFinalStateUnknown) -> true)
                 .build();
 
         return List.of(new InformerEventSource<>(configuration, context));
