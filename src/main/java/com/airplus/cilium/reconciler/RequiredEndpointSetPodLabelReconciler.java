@@ -35,32 +35,30 @@ public class RequiredEndpointSetPodLabelReconciler implements Reconciler<Pod> {
 
   @Override
   public List<EventSource<?, Pod>> prepareEventSources(EventSourceContext<Pod> context) {
-    InformerEventSourceConfiguration<RequiredEndpointSet> configuration = InformerEventSourceConfiguration
-        .from(RequiredEndpointSet.class, Pod.class)
+    var cfg = InformerEventSourceConfiguration.from(RequiredEndpointSet.class, Pod.class)
         .withSecondaryToPrimaryMapper(res -> {
-          Map<String, String> labels = res.getSpec().getTargetMatchLabels();
+          var labels = res.getSpec().getTargetMatchLabels();
           if (labels == null || labels.isEmpty()) {
             return Collections.emptySet();
           }
           return client.pods().inAnyNamespace().withLabels(labels).list().getItems().stream()
-              .map(ResourceID::fromResource)
-              .collect(Collectors.toSet());
+              .map(ResourceID::fromResource).collect(Collectors.toSet());
         })
         //TODO: detaching of the RequiredEndpointSets from the pod by renaming the targetSelectorLables is not yet implemented.
-        .withOnDeleteFilter((res, deletedFinalStateUnknown) -> true)
-        .build();
+        .withOnDeleteFilter((res, deletedFinalStateUnknown) -> true).build();
 
-    return List.of(new InformerEventSource<>(configuration, context));
+    return List.of(new InformerEventSource<>(cfg, context));
   }
 
   @Override
   public UpdateControl<Pod> reconcile(Pod pod, Context<Pod> context) {
-    String name = pod.getMetadata().getName();
-    String namespace = pod.getMetadata().getNamespace();
 
     if (pod.getMetadata().getDeletionTimestamp() != null) {
       return UpdateControl.noUpdate();
     }
+
+    var name = pod.getMetadata().getName();
+    var namespace = pod.getMetadata().getNamespace();
 
     final var podLabels = pod.getMetadata().getLabels();
     if (podLabels == null || podLabels.isEmpty()) {

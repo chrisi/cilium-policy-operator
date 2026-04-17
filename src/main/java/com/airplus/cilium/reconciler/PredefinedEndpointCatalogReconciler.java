@@ -3,9 +3,6 @@ package com.airplus.cilium.reconciler;
 import com.airplus.cilium.crd.PredefinedEndpointCatalog;
 import com.airplus.cilium.crd.Endpoint;
 import com.airplus.cilium.crd.PredefinedEndpointCatalogStatus;
-import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.api.model.OwnerReference;
-import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
@@ -15,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.airplus.cilium.reconciler.Global.*;
@@ -54,7 +50,7 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
     client.genericKubernetesResources(CILIO, CCNP).withLabel(MANAGED_BY_LABEL_KEY, MANAGED_BY_LABEL_VALUE)
         .list().getItems().stream()
         .filter(ccnp -> ccnp.getMetadata().getOwnerReferences().stream()
-            .anyMatch(ownerReference -> catalogUid.equals(ownerReference.getUid())))
+            .anyMatch(or -> catalogUid.equals(or.getUid())))
         .filter(ccnp -> !allEndpointName.contains(ccnp.getMetadata().getName()))
         .forEach(ccnp -> {
           log.info("deleting orphaned {} '{}'", CCNP, ccnp.getMetadata().getName());
