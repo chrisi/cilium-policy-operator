@@ -10,7 +10,7 @@ import static com.airplus.cilium.reconciler.Global.*;
 
 public class K8sUtils {
 
-  public static GenericKubernetesResource createCiliumNetworkPolicy(Endpoint endpoint, OwnerReference ownRef, String namespace) {
+  public static GenericKubernetesResource createCiliumNetworkPolicy(Endpoint endpoint, OwnerReference ownRef, String namespace, Map<String, String> endpointSelector) {
     String name = endpoint.getName();
     String address = endpoint.getAddress();
     String protocol = endpoint.getProtocol();
@@ -29,12 +29,16 @@ public class K8sUtils {
       metaBuilder.withNamespace(namespace);
     }
 
+    if (endpointSelector == null) {
+      endpointSelector = Map.of(POLICY_LABEL_PREFIX + name, "enabled");
+    }
+
     var builder = new GenericKubernetesResourceBuilder()
         .withApiVersion(CILIO).withKind(resName).withMetadata(metaBuilder.build())
         .addToAdditionalProperties("spec", Map.of(
             "description", "L3 policy for " + name,
             "egress", egressRules,
-            "endpointSelector", Map.of("matchLabels", Map.of("network-policy-predefined-" + name, "enabled"))
+            "endpointSelector", Map.of("matchLabels", endpointSelector)
         ));
 
     return builder.build();

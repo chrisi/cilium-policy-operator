@@ -59,7 +59,7 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
 
     // apply new policies or change existing ones
     for (var endpoint : endpoints) {
-      var ccnp = createCiliumNetworkPolicy(endpoint, K8sUtils.createOwnerReference(catalog), null);
+      var ccnp = createCiliumNetworkPolicy(endpoint, K8sUtils.createOwnerReference(catalog), null, null);
       log.info("applying {} '{}'", CCNP, endpoint.getName());
       client.genericKubernetesResources(CILIO, CCNP).resource(ccnp).serverSideApply();
     }

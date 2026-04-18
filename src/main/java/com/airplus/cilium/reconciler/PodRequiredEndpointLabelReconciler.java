@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.airplus.cilium.reconciler.Global.POLICY_LABEL_PREFIX;
 import static com.airplus.cilium.reconciler.K8sUtils.podLabelsMatch;
 
 @Component
@@ -77,7 +78,7 @@ public class PodRequiredEndpointLabelReconciler implements Reconciler<Pod> {
       var eps = set.getSpec().getPredefinedEndpoints();
       if (eps != null) {
         for (String ep : eps) {
-          labelsToAdd.put("com.airplus.cilium.predefined-endpoint/" + ep, "enabled");
+          labelsToAdd.put(POLICY_LABEL_PREFIX + ep, "enabled");
         }
       }
     }
@@ -86,7 +87,7 @@ public class PodRequiredEndpointLabelReconciler implements Reconciler<Pod> {
     // labels that are not present in the patch, we don't need to collect them but just trigger an update
     boolean hasLabelsToRemove = false;
     for (var key : podLabels.keySet()) {
-      if (key.startsWith("com.airplus.cilium.predefined-endpoint/") && !labelsToAdd.containsKey(key)) {
+      if (key.startsWith(POLICY_LABEL_PREFIX) && !labelsToAdd.containsKey(key)) {
         hasLabelsToRemove = true;
         break;
       }
