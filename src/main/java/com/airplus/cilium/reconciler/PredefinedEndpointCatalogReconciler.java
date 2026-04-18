@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import java.util.stream.Collectors;
 
 import static com.airplus.cilium.reconciler.Global.*;
+import static com.airplus.cilium.reconciler.K8sUtils.createCiliumNetworkPolicy;
 
 @Component
 @ControllerConfiguration
@@ -23,7 +24,6 @@ import static com.airplus.cilium.reconciler.Global.*;
 public class PredefinedEndpointCatalogReconciler implements Reconciler<PredefinedEndpointCatalog> {
 
   private final KubernetesClient client;
-  private final CiliumNetworkPolicyService policyService;
 
   @Override
   public UpdateControl<PredefinedEndpointCatalog> reconcile(PredefinedEndpointCatalog catalog, Context<PredefinedEndpointCatalog> context) {
@@ -59,7 +59,7 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
 
     // apply new policies or change existing ones
     for (var endpoint : endpoints) {
-      var ccnp = policyService.createCiliumNetworkPolicy(endpoint, K8sUtils.createOwnerReference(catalog));
+      var ccnp = createCiliumNetworkPolicy(endpoint, K8sUtils.createOwnerReference(catalog), null);
       log.info("applying {} '{}'", CCNP, endpoint.getName());
       client.genericKubernetesResources(CILIO, CCNP).resource(ccnp).serverSideApply();
     }

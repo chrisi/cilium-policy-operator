@@ -1,12 +1,44 @@
 package com.airplus.cilium.reconciler;
 
-import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.api.model.OwnerReference;
-import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
+import com.airplus.cilium.crd.Endpoint;
+import io.fabric8.kubernetes.api.model.*;
 
+import java.util.List;
 import java.util.Map;
 
+import static com.airplus.cilium.reconciler.Global.*;
+
 public class K8sUtils {
+
+  public static GenericKubernetesResource createCiliumNetworkPolicy(Endpoint endpoint, OwnerReference ownRef, String namespace) {
+    String name = endpoint.getName();
+    String address = endpoint.getAddress();
+    String protocol = endpoint.getProtocol();
+    String port = endpoint.getPort();
+
+    List<Map<String, Object>> egressRules = ConvertUtils.convertTarget(address, port, protocol);
+
+    var resName = namespace != null ? CNP : CCNP;
+
+    var metaBuilder = new ObjectMetaBuilder().
+        withName(name)
+        .addToLabels(Global.MANAGED_BY_LABEL_KEY, Global.MANAGED_BY_LABEL_VALUE)
+        .addToOwnerReferences(ownRef);
+
+    if (namespace != null) {
+      metaBuilder.withNamespace(namespace);
+    }
+
+    var builder = new GenericKubernetesResourceBuilder()
+        .withApiVersion(CILIO).withKind(resName).withMetadata(metaBuilder.build())
+        .addToAdditionalProperties("spec", Map.of(
+            "description", "L3 policy for " + name,
+            "egress", egressRules,
+            "endpointSelector", Map.of("matchLabels", Map.of("network-policy-predefined-" + name, "enabled"))
+        ));
+
+    return builder.build();
+  }
 
   public static OwnerReference createOwnerReference(HasMetadata resource) {
     return new OwnerReferenceBuilder()
