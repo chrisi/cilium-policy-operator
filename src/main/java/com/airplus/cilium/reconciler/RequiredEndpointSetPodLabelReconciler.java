@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.airplus.cilium.reconciler.K8sUtils.podLabelsMatch;
+
 @Component
 @ControllerConfiguration(generationAwareEventProcessing = false)
 @Slf4j
@@ -124,15 +126,5 @@ public class RequiredEndpointSetPodLabelReconciler implements Reconciler<Pod> {
     }
 
     return UpdateControl.noUpdate();
-  }
-
-  private boolean podLabelsMatch(Map<String, String> podLabels, Map<String, String> targetMatchLabels) {
-    for (var entry : targetMatchLabels.entrySet()) {
-      var podValue = podLabels.get(entry.getKey());
-      if (podValue == null || !podValue.equals(entry.getValue())) {
-        return false;
-      }
-    }
-    return true;
   }
 }

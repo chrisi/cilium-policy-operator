@@ -9,6 +9,9 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 
+import static com.airplus.cilium.reconciler.Global.CCNP;
+import static com.airplus.cilium.reconciler.Global.CILIO;
+
 @Service
 public class CiliumNetworkPolicyService {
 
@@ -21,10 +24,7 @@ public class CiliumNetworkPolicyService {
     List<Map<String, Object>> egressRules = ConvertUtils.convertTarget(address, port, protocol);
 
     return new GenericKubernetesResourceBuilder()
-        .withApiVersion("cilium.io/v2")
-        .withKind("CiliumClusterwideNetworkPolicy")
-        .withNewMetadata()
-        .withName(name)
+        .withApiVersion(CILIO).withKind(CCNP).withNewMetadata().withName(name)
         .addToLabels(Global.MANAGED_BY_LABEL_KEY, Global.MANAGED_BY_LABEL_VALUE)
         .addToOwnerReferences(ownRef)
         .endMetadata()
