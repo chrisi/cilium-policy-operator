@@ -22,7 +22,6 @@ import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.airplus.cilium.reconciler.K8sUtils.podLabelsMatch;
@@ -31,7 +30,7 @@ import static com.airplus.cilium.reconciler.K8sUtils.podLabelsMatch;
 @ControllerConfiguration(generationAwareEventProcessing = false)
 @Slf4j
 @AllArgsConstructor
-public class RequiredEndpointSetPodLabelReconciler implements Reconciler<Pod> {
+public class PodRequiredEndpointLabelReconciler implements Reconciler<Pod> {
 
   private final KubernetesClient client;
 
