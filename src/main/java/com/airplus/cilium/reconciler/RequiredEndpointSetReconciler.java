@@ -63,8 +63,9 @@ public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpoin
 
       // apply new policies or change existing ones
       for (var endpoint : customEndpoints) {
-        var policy = createCiliumNetworkPolicy(endpoint, K8sUtils.createOwnerReference(res), namespace, targetMatchLabels);
-        log.info("applying {} '{}' for '{}' in namespace '{}'", CNP, endpoint.getName(), appName, namespace);
+        var policyName = String.format("%s-%s", res.getMetadata().getName(), endpoint.getName());
+        var policy = createCiliumNetworkPolicy(endpoint, K8sUtils.createOwnerReference(res), namespace, policyName, targetMatchLabels);
+        log.info("applying {} '{}' for '{}' in namespace '{}'", CNP, policyName, appName, namespace);
         client.genericKubernetesResources(CILIO, CNP).inNamespace(namespace).resource(policy).serverSideApply();
       }
       log.info("finished applying {} {}(s) from {} '{}'", customEndpoints.size(), CNP, RES, name);

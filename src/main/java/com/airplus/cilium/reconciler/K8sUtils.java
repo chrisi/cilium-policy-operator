@@ -10,8 +10,10 @@ import static com.airplus.cilium.reconciler.Global.*;
 
 public class K8sUtils {
 
-  public static GenericKubernetesResource createCiliumNetworkPolicy(Endpoint endpoint, OwnerReference ownRef, String namespace, Map<String, String> endpointSelector) {
-    String name = endpoint.getName();
+  public static GenericKubernetesResource createCiliumNetworkPolicy(
+      Endpoint endpoint, OwnerReference ownRef,
+      String namespace, String name, Map<String, String> endpointSelector) {
+    String epName = endpoint.getName();
     String address = endpoint.getAddress();
     String protocol = endpoint.getProtocol();
     String port = endpoint.getPort();
@@ -20,8 +22,7 @@ public class K8sUtils {
 
     var resName = namespace != null ? CNP : CCNP;
 
-    var metaBuilder = new ObjectMetaBuilder().
-        withName(String.format("%s-%s", ownRef.getName(), name))
+    var metaBuilder = new ObjectMetaBuilder().withName(name)
         .addToLabels(Global.MANAGED_BY_LABEL_KEY, Global.MANAGED_BY_LABEL_VALUE)
         .addToOwnerReferences(ownRef);
 
@@ -30,13 +31,13 @@ public class K8sUtils {
     }
 
     if (endpointSelector == null) {
-      endpointSelector = Map.of(POLICY_LABEL_PREFIX + name, "enabled");
+      endpointSelector = Map.of(POLICY_LABEL_PREFIX + epName, "enabled");
     }
 
     var builder = new GenericKubernetesResourceBuilder()
         .withApiVersion(CILIO).withKind(resName).withMetadata(metaBuilder.build())
         .addToAdditionalProperties("spec", Map.of(
-            "description", "L3 policy for " + name,
+            "description", "L3 policy for " + epName,
             "egress", egressRules,
             "endpointSelector", Map.of("matchLabels", endpointSelector)
         ));
@@ -45,7 +46,7 @@ public class K8sUtils {
   }
 
   public static GenericKubernetesResource createCiliumClusterwideNetworkPolicy(Endpoint endpoint, OwnerReference ownRef) {
-    return createCiliumNetworkPolicy(endpoint, ownRef, null, null);
+    return createCiliumNetworkPolicy(endpoint, ownRef, null, endpoint.getName(), null);
   }
 
   public static OwnerReference createOwnerReference(HasMetadata resource) {
