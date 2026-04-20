@@ -30,7 +30,7 @@ public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpoin
   public UpdateControl<RequiredEndpointSet> reconcile(RequiredEndpointSet res, Context<RequiredEndpointSet> context) {
     String name = res.getMetadata().getName();
     String namespace = res.getMetadata().getNamespace();
-    log.info("reconciling RequiredEndpointSet {} in namespace: {}", name, namespace);
+    log.info("reconciling {} {} in namespace: {}", RES, name, namespace);
 
     UpdateControl<RequiredEndpointSet> updateControl = UpdateControl.patchStatus(res);
     updateControl.rescheduleAfter(60, java.util.concurrent.TimeUnit.SECONDS);
@@ -38,12 +38,12 @@ public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpoin
     var customEndpoints = res.getSpec().getCustomEndpoints();
 
     if (customEndpoints == null || customEndpoints.isEmpty()) {
-      log.info("no customEndpoints provided in RequiredEndpointSet '{}'", name);
+      log.info("no customEndpoints provided in {} '{}'", RES, name);
     } else {
       var allEndpointName = customEndpoints.stream().map(Endpoint::getName).collect(Collectors.toSet());
       var targetMatchLabels = res.getSpec().getTargetMatchLabels();
 
-      log.info("processing customEndpoints from RequiredEndpointSet '{}'", name);
+      log.info("processing customEndpoints from {} '{}'", RES, name);
 
       var appName = targetMatchLabels.get("app");
       if (appName == null) appName = targetMatchLabels.toString();
@@ -63,11 +63,11 @@ public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpoin
 
       // apply new policies or change existing ones
       for (var endpoint : customEndpoints) {
-        var cnp = createCiliumNetworkPolicy(endpoint, K8sUtils.createOwnerReference(res), namespace, targetMatchLabels);
+        var policy = createCiliumNetworkPolicy(endpoint, K8sUtils.createOwnerReference(res), namespace, targetMatchLabels);
         log.info("applying {} '{}' for '{}' in namespace '{}'", CNP, endpoint.getName(), appName, namespace);
-        client.genericKubernetesResources(CILIO, CNP).inNamespace(namespace).resource(cnp).serverSideApply();
+        client.genericKubernetesResources(CILIO, CNP).inNamespace(namespace).resource(policy).serverSideApply();
       }
-      log.info("finished applying {} {} from RequiredEndpointSet '{}'", customEndpoints.size(), CNP, name);
+      log.info("finished applying {} {} from {} '{}'", customEndpoints.size(), RES, CNP, name);
     }
 
     if (res.getStatus() == null) {

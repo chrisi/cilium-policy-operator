@@ -44,6 +44,10 @@ public class K8sUtils {
     return builder.build();
   }
 
+  public static GenericKubernetesResource createCiliumClusterwideNetworkPolicy(Endpoint endpoint, OwnerReference ownRef) {
+    return createCiliumNetworkPolicy(endpoint, ownRef, null, null);
+  }
+
   public static OwnerReference createOwnerReference(HasMetadata resource) {
     return new OwnerReferenceBuilder()
         .withApiVersion(resource.getApiVersion())

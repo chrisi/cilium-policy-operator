@@ -9,4 +9,7 @@ public class Global {
   public static final String CILIO = "cilium.io/v2";
   public static final String CCNP = "CiliumClusterwideNetworkPolicy";
   public static final String CNP = "CiliumNetworkPolicy";
+
+  public static final String RES = "RequiredEndpointSet";
+  public static final String PEC = "PredefinedEndpointCatalog";
 }
