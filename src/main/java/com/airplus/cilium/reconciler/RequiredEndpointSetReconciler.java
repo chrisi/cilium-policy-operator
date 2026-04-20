@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.airplus.cilium.reconciler.Global.*;
@@ -44,6 +45,9 @@ public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpoin
 
       log.info("processing customEndpoints from RequiredEndpointSet '{}'", name);
 
+      var appName = targetMatchLabels.get("app");
+      if (appName == null) appName = targetMatchLabels.toString();
+
       // delete orphaned policies
       String resUid = res.getMetadata().getUid();
       client.genericKubernetesResources(CILIO, CNP).inNamespace(namespace)
@@ -60,9 +64,10 @@ public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpoin
       // apply new policies or change existing ones
       for (var endpoint : customEndpoints) {
         var cnp = createCiliumNetworkPolicy(endpoint, K8sUtils.createOwnerReference(res), namespace, targetMatchLabels);
-        log.info("applying {} '{}' in namespace '{}'", CNP, endpoint.getName(), namespace);
+        log.info("applying {} '{}' for '{}' in namespace '{}'", CNP, endpoint.getName(), appName, namespace);
         client.genericKubernetesResources(CILIO, CNP).inNamespace(namespace).resource(cnp).serverSideApply();
       }
+      log.info("finished applying {} {} from RequiredEndpointSet '{}'", customEndpoints.size(), CNP, name);
     }
 
     if (res.getStatus() == null) {
