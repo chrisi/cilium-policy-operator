@@ -40,7 +40,9 @@ public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpoin
     if (customEndpoints == null || customEndpoints.isEmpty()) {
       log.info("no customEndpoints provided in {} '{}'", RES, name);
     } else {
-      var allEndpointName = customEndpoints.stream().map(Endpoint::getName).collect(Collectors.toSet());
+      var allEndpointName = customEndpoints.stream()
+          .map(endpoint -> String.format("%s-%s", res.getMetadata().getName(), endpoint.getName()))
+          .collect(Collectors.toSet());
       var targetMatchLabels = res.getSpec().getTargetMatchLabels();
 
       log.info("processing customEndpoints from {} '{}'", RES, name);
