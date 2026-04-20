@@ -67,7 +67,7 @@ public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpoin
         log.info("applying {} '{}' for '{}' in namespace '{}'", CNP, endpoint.getName(), appName, namespace);
         client.genericKubernetesResources(CILIO, CNP).inNamespace(namespace).resource(policy).serverSideApply();
       }
-      log.info("finished applying {} {} from {} '{}'", customEndpoints.size(), RES, CNP, name);
+      log.info("finished applying {} {}(s) from {} '{}'", customEndpoints.size(), CNP, RES, name);
     }
 
     if (res.getStatus() == null) {

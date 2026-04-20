@@ -21,7 +21,7 @@ public class K8sUtils {
     var resName = namespace != null ? CNP : CCNP;
 
     var metaBuilder = new ObjectMetaBuilder().
-        withName(name)
+        withName(String.format("%s-%s", ownRef.getName(), name))
         .addToLabels(Global.MANAGED_BY_LABEL_KEY, Global.MANAGED_BY_LABEL_VALUE)
         .addToOwnerReferences(ownRef);
 

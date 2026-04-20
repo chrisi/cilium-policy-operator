@@ -64,7 +64,7 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
       log.info("applying {} '{}'", CCNP, endpoint.getName());
       client.genericKubernetesResources(CILIO, CCNP).resource(policy).serverSideApply();
     }
-    log.info("finished applying {} {} from {} '{}'", endpoints.size(), CCNP, PEC, name);
+    log.info("finished applying {} {}(s) from {} '{}'", endpoints.size(), CCNP, PEC, name);
 
     if (catalog.getStatus() == null) {
       catalog.setStatus(new PredefinedEndpointCatalogStatus());
