@@ -20,3 +20,6 @@ spec:
       address: 10.20.30.40/26
       port: "7676"
       protocol: TCP
+  allowedProcesses:
+    - /pause
+    - /opt/java/openjdk/bin/java

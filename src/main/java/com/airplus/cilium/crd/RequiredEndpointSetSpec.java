@@ -12,4 +12,5 @@ public class RequiredEndpointSetSpec {
   private Map<String, String> targetMatchLabels;
   private List<String> predefinedEndpoints;
   private List<Endpoint> customEndpoints;
+  private List<String> allowedProcesses;
 }

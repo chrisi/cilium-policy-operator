@@ -46,6 +46,10 @@ spec:
                         type: string
                       protocol:
                         type: string
+                allowedProcesses:
+                  type: array
+                  items:
+                    type: string
             status:
               type: object
               properties:

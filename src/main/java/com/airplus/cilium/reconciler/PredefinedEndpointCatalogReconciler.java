@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 
 import static com.airplus.cilium.reconciler.Global.*;
 import static com.airplus.cilium.reconciler.K8sUtils.createCiliumClusterwideNetworkPolicy;
-import static com.airplus.cilium.reconciler.K8sUtils.createCiliumNetworkPolicy;
 
 @Component
 @ControllerConfiguration
@@ -47,7 +46,6 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
     var dups = findDuplicates(endpoints);
     if (!dups.isEmpty()) {
       log.warn("found duplicate entries in {} '{}': {}", PEC, name, dups);
-      dups.forEach(dup -> log.warn("  - {}", dup));
     }
 
     var allEndpointName = endpoints.stream().map(Endpoint::getName).collect(Collectors.toSet());
@@ -56,14 +54,14 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
 
     // delete orphaned policies
     String catalogUid = catalog.getMetadata().getUid();
-    client.genericKubernetesResources(CILIO, CCNP).withLabel(MANAGED_BY_LABEL_KEY, MANAGED_BY_LABEL_VALUE)
+    client.genericKubernetesResources(CILIOv2, CCNP).withLabel(MANAGED_BY_LABEL_KEY, MANAGED_BY_LABEL_VALUE)
         .list().getItems().stream()
         .filter(ccnp -> ccnp.getMetadata().getOwnerReferences().stream()
             .anyMatch(or -> catalogUid.equals(or.getUid())))
         .filter(ccnp -> !allEndpointName.contains(ccnp.getMetadata().getName()))
         .forEach(ccnp -> {
           log.info("deleting orphaned {} '{}'", CCNP, ccnp.getMetadata().getName());
-          client.genericKubernetesResources(CILIO, CCNP).resource(ccnp).delete();
+          client.genericKubernetesResources(CILIOv2, CCNP).resource(ccnp).delete();
         });
 
     // apply new policies or change existing ones
@@ -71,7 +69,7 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
       var policy = createCiliumClusterwideNetworkPolicy(endpoint, K8sUtils.createOwnerReference(catalog));
       log.info("applying {} '{}'", CCNP, endpoint.getName());
       try {
-        client.genericKubernetesResources(CILIO, CCNP).resource(policy).serverSideApply();
+        client.genericKubernetesResources(CILIOv2, CCNP).resource(policy).serverSideApply();
       } catch (Exception e) {
         log.error("failed to apply {} '{}': {}", CCNP, endpoint.getName(), e.getMessage());
       }

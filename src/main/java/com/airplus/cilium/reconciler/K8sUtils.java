@@ -35,7 +35,7 @@ public class K8sUtils {
     }
 
     var builder = new GenericKubernetesResourceBuilder()
-        .withApiVersion(CILIO).withKind(resName).withMetadata(metaBuilder.build())
+        .withApiVersion(CILIOv2).withKind(resName).withMetadata(metaBuilder.build())
         .addToAdditionalProperties("spec", Map.of(
             "description", "L3 policy for " + epName,
             "egress", egressRules,
@@ -47,6 +47,37 @@ public class K8sUtils {
 
   public static GenericKubernetesResource createCiliumClusterwideNetworkPolicy(Endpoint endpoint, OwnerReference ownRef) {
     return createCiliumNetworkPolicy(endpoint, ownRef, null, endpoint.getName(), null);
+  }
+
+  public static GenericKubernetesResource createTracingPolicy(String name, OwnerReference ownRef, List<String> allowedProcesses) {
+    var metaBuilder = new ObjectMetaBuilder().withName(name)
+        .addToLabels(Global.MANAGED_BY_LABEL_KEY, Global.MANAGED_BY_LABEL_VALUE)
+        .addToOwnerReferences(ownRef);
+
+    var kprobe = Map.of(
+        "call", "security_bprm_check",
+        "syscall", false,
+        "args", List.of(Map.of("index", 0, "type", "nop")),
+        "selectors", List.of(Map.of(
+            "matchPIDs", List.of(Map.of(
+                "operator", "NotIn",
+                "values", List.of(1, 2)
+            )),
+            "matchArgs", List.of(Map.of(
+                "index", 0,
+                "operator", "NotPost",
+                "values", allowedProcesses
+            )),
+            "matchActions", List.of(Map.of("action", "Sigkill"))
+        ))
+    );
+
+    return new GenericKubernetesResourceBuilder()
+        .withApiVersion(CILIOv1alpha1)
+        .withKind(TP)
+        .withMetadata(metaBuilder.build())
+        .addToAdditionalProperties("spec", Map.of("kprobes", List.of(kprobe)))
+        .build();
   }
 
   public static OwnerReference createOwnerReference(HasMetadata resource) {
