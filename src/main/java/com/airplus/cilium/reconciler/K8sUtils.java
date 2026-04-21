@@ -49,7 +49,7 @@ public class K8sUtils {
     return createCiliumNetworkPolicy(endpoint, ownRef, null, endpoint.getName(), null);
   }
 
-  public static GenericKubernetesResource createNamespacedTracingPolicy(List<String> allowedProcesses, OwnerReference ownRef, String namespace, String name, Map<String, String> podSelector) {
+  public static GenericKubernetesResource createTracingPolicyNamespaced(List<String> allowedProcesses, OwnerReference ownRef, String namespace, String name, Map<String, String> podSelector) {
     var metaBuilder = new ObjectMetaBuilder().withNamespace(namespace).withName(name)
         .addToLabels(Global.MANAGED_BY_LABEL_KEY, Global.MANAGED_BY_LABEL_VALUE)
         .addToOwnerReferences(ownRef);

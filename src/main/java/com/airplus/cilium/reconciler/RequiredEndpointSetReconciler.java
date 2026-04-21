@@ -86,7 +86,7 @@ public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpoin
       log.info("no allowedProcesses provided in {} '{}'", RES, name);
     } else {
       log.info("processing allowedProcesses from {} '{}'", RES, name);
-      var policy = K8sUtils.createNamespacedTracingPolicy(allowedProcesses, K8sUtils.createOwnerReference(res), namespace, policyName, res.getSpec().getTargetMatchLabels());
+      var policy = K8sUtils.createTracingPolicyNamespaced(allowedProcesses, K8sUtils.createOwnerReference(res), namespace, policyName, res.getSpec().getTargetMatchLabels());
       apply(policy, namespace, appName, policyName, CILIOv1alpha1, TPN);
       log.info("finished applying {} from {} '{}'", TPN, RES, name);
     }
