@@ -74,6 +74,21 @@ hubble status
 hubble observe
 ```
 
+## Install Tetragon
+
+* https://gemini.google.com/share/911f579231c7
+
+```bash
+helm repo add cilium https://helm.cilium.io
+helm repo update
+```
+
+```bash
+helm install tetragon cilium/tetragon \
+  --namespace kube-system \
+  --set tetragon.hostProcPath=/proc
+```
+
 ## Test Server (Nginx)
 
 ```bash

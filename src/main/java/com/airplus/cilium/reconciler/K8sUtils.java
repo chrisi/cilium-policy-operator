@@ -49,15 +49,15 @@ public class K8sUtils {
     return createCiliumNetworkPolicy(endpoint, ownRef, null, endpoint.getName(), null);
   }
 
-  public static GenericKubernetesResource createTracingPolicy(String name, OwnerReference ownRef, List<String> allowedProcesses) {
-    var metaBuilder = new ObjectMetaBuilder().withName(name)
+  public static GenericKubernetesResource createNamespacedTracingPolicy(List<String> allowedProcesses, OwnerReference ownRef, String namespace, String name, Map<String, String> podSelector) {
+    var metaBuilder = new ObjectMetaBuilder().withNamespace(namespace).withName(name)
         .addToLabels(Global.MANAGED_BY_LABEL_KEY, Global.MANAGED_BY_LABEL_VALUE)
         .addToOwnerReferences(ownRef);
 
     var kprobe = Map.of(
         "call", "security_bprm_check",
         "syscall", false,
-        "args", List.of(Map.of("index", 0, "type", "nop")),
+        "args", List.of(Map.of("index", 0, "type", "string")),
         "selectors", List.of(Map.of(
             "matchPIDs", List.of(Map.of(
                 "operator", "NotIn",
@@ -65,7 +65,7 @@ public class K8sUtils {
             )),
             "matchArgs", List.of(Map.of(
                 "index", 0,
-                "operator", "NotPost",
+                "operator", "NotEqual",
                 "values", allowedProcesses
             )),
             "matchActions", List.of(Map.of("action", "Sigkill"))
@@ -74,9 +74,12 @@ public class K8sUtils {
 
     return new GenericKubernetesResourceBuilder()
         .withApiVersion(CILIOv1alpha1)
-        .withKind(TP)
+        .withKind(TPN)
         .withMetadata(metaBuilder.build())
-        .addToAdditionalProperties("spec", Map.of("kprobes", List.of(kprobe)))
+        .addToAdditionalProperties("spec", Map.of(
+            "kprobes", List.of(kprobe),
+            "podSelector", Map.of("matchLabels", podSelector)
+        ))
         .build();
   }
 
