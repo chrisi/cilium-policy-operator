@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.airplus.cilium.reconciler.Global.*;
@@ -42,6 +44,12 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
       return UpdateControl.noUpdate();
     }
 
+    var dups = findDuplicates(endpoints);
+    if (!dups.isEmpty()) {
+      log.warn("found duplicate entries in {} '{}': {}", PEC, name, dups);
+      dups.forEach(dup -> log.warn("  - {}", dup));
+    }
+
     var allEndpointName = endpoints.stream().map(Endpoint::getName).collect(Collectors.toSet());
 
     log.info("processing endpoints from {} '{}'", PEC, name);
@@ -62,7 +70,11 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
     for (var endpoint : endpoints) {
       var policy = createCiliumClusterwideNetworkPolicy(endpoint, K8sUtils.createOwnerReference(catalog));
       log.info("applying {} '{}'", CCNP, endpoint.getName());
-      client.genericKubernetesResources(CILIO, CCNP).resource(policy).serverSideApply();
+      try {
+        client.genericKubernetesResources(CILIO, CCNP).resource(policy).serverSideApply();
+      } catch (Exception e) {
+        log.error("failed to apply {} '{}': {}", CCNP, endpoint.getName(), e.getMessage());
+      }
     }
     log.info("finished applying {} {}(s) from {} '{}'", endpoints.size(), CCNP, PEC, name);
 
@@ -72,5 +84,15 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
     catalog.getStatus().setStatus("Ready");
 
     return updateControl;
+  }
+
+  private List<String> findDuplicates(List<Endpoint> endpoints) {
+    return endpoints.stream()
+        .map(Endpoint::getName)
+        .collect(Collectors.groupingBy(name -> name, Collectors.counting()))
+        .entrySet().stream()
+        .filter(entry -> entry.getValue() > 1)
+        .map(Map.Entry::getKey)
+        .toList();
   }
 }

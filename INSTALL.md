@@ -1,5 +1,10 @@
 ## Install operator
  
+
+```bash
+minikube image load docker.io/library/cilium-policy-operator:0.0.1-SNAPSHOT
+```
+
 ```bash
 kubectx minikube
 kubectl apply -f deploy.yaml

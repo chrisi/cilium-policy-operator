@@ -68,7 +68,11 @@ public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpoin
         var policyName = String.format("%s-%s", res.getMetadata().getName(), endpoint.getName());
         var policy = createCiliumNetworkPolicy(endpoint, K8sUtils.createOwnerReference(res), namespace, policyName, targetMatchLabels);
         log.info("applying {} '{}' for '{}' in namespace '{}'", CNP, policyName, appName, namespace);
-        client.genericKubernetesResources(CILIO, CNP).inNamespace(namespace).resource(policy).serverSideApply();
+        try {
+          client.genericKubernetesResources(CILIO, CNP).inNamespace(namespace).resource(policy).serverSideApply();
+        } catch (Exception e) {
+          log.error("failed to apply {} '{}': {}", CNP, policyName, e.getMessage());
+        }
       }
       log.info("finished applying {} {}(s) from {} '{}'", customEndpoints.size(), CNP, RES, name);
     }

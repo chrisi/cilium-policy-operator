@@ -10,6 +10,7 @@ spec:
   predefinedEndpoints:
     - aad-api
     - azure-sql
+    - another-website
   customEndpoints:
     - name: web-id
       address: 192.168.178.32
