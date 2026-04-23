@@ -10,6 +10,7 @@ import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -25,16 +26,19 @@ import static com.airplus.cilium.reconciler.K8sUtils.createCiliumNetworkPolicy;
 @Slf4j
 public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpointSet> {
 
+  @Value("${operator.reconcilers.required-endpoint-set.update-interval:60}")
+  private long interval;
+
   private final KubernetesClient client;
 
   @Override
   public UpdateControl<RequiredEndpointSet> reconcile(RequiredEndpointSet res, Context<RequiredEndpointSet> context) {
     String name = res.getMetadata().getName();
     String namespace = res.getMetadata().getNamespace();
-    log.info("reconciling {} {} in namespace: {}", RES, name, namespace);
+    log.info("reconciling {} '{}' in namespace '{}'", RES, name, namespace);
 
     UpdateControl<RequiredEndpointSet> updateControl = UpdateControl.patchStatus(res);
-    updateControl.rescheduleAfter(60, java.util.concurrent.TimeUnit.SECONDS);
+    updateControl.rescheduleAfter(interval, java.util.concurrent.TimeUnit.SECONDS);
 
     var targetMatchLabels = res.getSpec().getTargetMatchLabels();
     var appName = targetMatchLabels.get("app");
@@ -61,7 +65,7 @@ public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpoin
         .map(endpoint -> String.format("%s-%s", res.getMetadata().getName(), endpoint.getName()))
         .collect(Collectors.toSet());
 
-    deleteOrphanedPolicies(res, namespace, pol -> allEndpointName.contains(pol.getMetadata().getName()), CILIOv2, CNP);
+    deleteOrphanedPolicies(res, namespace, pol -> !allEndpointName.contains(pol.getMetadata().getName()), CILIOv2, CNP);
 
     if (customEndpoints.isEmpty()) {
       log.info("no customEndpoints provided in {} '{}'", RES, name);
@@ -80,7 +84,7 @@ public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpoin
     var allowedProcesses = res.getSpec().getAllowedProcesses();
     var policyName = String.format("%s-tracing", res.getMetadata().getName());
 
-    deleteOrphanedPolicies(res, namespace, pol -> pol.getMetadata().getName().equals(policyName), CILIOv1alpha1, TPN);
+    deleteOrphanedPolicies(res, namespace, pol -> !pol.getMetadata().getName().equals(policyName), CILIOv1alpha1, TPN);
 
     if (allowedProcesses == null || allowedProcesses.isEmpty()) {
       log.info("no allowedProcesses provided in {} '{}'", RES, name);
@@ -93,12 +97,10 @@ public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpoin
   }
 
   private void deleteOrphanedPolicies(RequiredEndpointSet res, String namespace, Predicate<GenericKubernetesResource> filter, String resGroup, String resKind) {
-    String resUid = res.getMetadata().getUid();
     client.genericKubernetesResources(resGroup, resKind).inNamespace(namespace)
-        .withLabel(MANAGED_BY_LABEL_KEY, MANAGED_BY_LABEL_VALUE)
-        .list().getItems().stream()
+        .withLabel(MANAGED_BY_LABEL_KEY, MANAGED_BY_LABEL_VALUE).list().getItems().stream()
         .filter(pol -> pol.getMetadata().getOwnerReferences().stream()
-            .anyMatch(or -> resUid.equals(or.getUid())))
+            .anyMatch(or -> or.getUid().equals(res.getMetadata().getUid())))
         .filter(filter)
         .forEach(pol -> {
           log.info("deleting orphaned {} '{}'", resKind, pol.getMetadata().getName());

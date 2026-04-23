@@ -18,7 +18,7 @@ rules:
     resources: [ "networkpolicies" ]
     verbs: [ "get", "list", "watch", "create", "update", "patch", "delete" ]
   - apiGroups: [ "cilium.io" ]
-    resources: [ "ciliumnetworkpolicies", "ciliumclusterwidenetworkpolicies" ]
+    resources: [ "ciliumnetworkpolicies", "ciliumclusterwidenetworkpolicies", "tracingpoliciesnamespaced" ]
     verbs: [ "get", "list", "watch", "create", "update", "patch", "delete" ]
   - apiGroups: [ "" ]
     resources: [ "pods", "nodes", "namespaces", "services", "endpoints" ]
@@ -58,6 +58,25 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
+          volumeMounts:
+            - name: config
+              mountPath: /etc/config
+      volumes:
+        - name: config
+          configMap:
+            name: cilium-policy-operator
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cilium-policy-operator
+data:
+  application.yaml: |
+    reconcilers:
+      predefined-endpoint-catalog:
+        update-interval: 60
+      required-endpoint-set:
+        update-interval: 60
 ---
 apiVersion: v1
 kind: Service

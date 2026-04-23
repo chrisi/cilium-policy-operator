@@ -10,6 +10,7 @@ import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -25,16 +26,19 @@ import static com.airplus.cilium.reconciler.K8sUtils.createCiliumClusterwideNetw
 @Slf4j
 public class PredefinedEndpointCatalogReconciler implements Reconciler<PredefinedEndpointCatalog> {
 
+  @Value("${operator.reconcilers.predefined-endpoint-catalog.update-interval:60}")
+  private long interval;
+
   private final KubernetesClient client;
 
   @Override
   public UpdateControl<PredefinedEndpointCatalog> reconcile(PredefinedEndpointCatalog catalog, Context<PredefinedEndpointCatalog> context) {
     String name = catalog.getMetadata().getName();
     String namespace = catalog.getMetadata().getNamespace();
-    log.info("reconciling {} {} in namespace: {}", PEC, name, namespace);
+    log.info("reconciling {} '{}' in namespace '{}'", PEC, name, namespace);
 
     UpdateControl<PredefinedEndpointCatalog> updateControl = UpdateControl.patchStatus(catalog);
-    updateControl.rescheduleAfter(60, java.util.concurrent.TimeUnit.SECONDS);
+    updateControl.rescheduleAfter(interval, java.util.concurrent.TimeUnit.SECONDS);
 
     var endpoints = catalog.getSpec().getEndpoints();
 

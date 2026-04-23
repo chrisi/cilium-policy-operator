@@ -1,10 +1,12 @@
 spring:
+  config:
+    import: optional:file:/etc/config/application.yaml
   application:
     name: cilium-policy-operator
 
 operator:
-  # The java-operator-sdk-spring-boot-starter will automatically pick up @Component reconcilers.
-  # This section can be used for more specific configuration.
   reconcilers:
-    targetsystemreconciler:
-      name: targetsystemreconciler
+    predefined-endpoint-catalog:
+      update-interval: 60
+    required-endpoint-set:
+      update-interval: 60
