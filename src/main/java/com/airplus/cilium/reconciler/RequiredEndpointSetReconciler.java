@@ -8,6 +8,8 @@ import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,7 +24,6 @@ import static com.airplus.cilium.reconciler.K8sUtils.createCiliumNetworkPolicy;
 
 @Component
 @ControllerConfiguration
-@RequiredArgsConstructor
 @Slf4j
 public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpointSet> {
 
@@ -31,11 +32,23 @@ public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpoin
 
   private final KubernetesClient client;
 
+  private final Counter reconcileCounter;
+
+  public RequiredEndpointSetReconciler(KubernetesClient client, MeterRegistry registry) {
+    this.client = client;
+    this.reconcileCounter = Counter.builder("ciliumpolicyoperator_requiredendpointset_reconcile_total")
+        .description("Total number of RequiredEndpointSet reconcile operations")
+        .tag("status", "success")
+        .register(registry);
+  }
+
   @Override
   public UpdateControl<RequiredEndpointSet> reconcile(RequiredEndpointSet res, Context<RequiredEndpointSet> context) {
     String name = res.getMetadata().getName();
     String namespace = res.getMetadata().getNamespace();
     log.info("reconciling {} '{}' in namespace '{}'", RES, name, namespace);
+
+    reconcileCounter.increment();
 
     UpdateControl<RequiredEndpointSet> updateControl = UpdateControl.patchStatus(res);
     updateControl.rescheduleAfter(interval, java.util.concurrent.TimeUnit.SECONDS);

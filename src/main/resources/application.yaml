@@ -10,3 +10,28 @@ operator:
       update-interval: 60
     required-endpoint-set:
       update-interval: 60
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+      discovery:
+        enabled: true
+#  otlp:
+#    metrics:
+#      export:
+#        enabled: false
+#  tracing:
+#    export:
+#      enabled: true
+#    sampling:
+#      probability: 1.0
+#  opentelemetry:
+#    tracing:
+#      export:
+#        otlp:
+#          endpoint: http://alloy.observability.svc.cluster.local:4318/v1/traces
+#  observations:
+#    annotations:
+#      enabled: true

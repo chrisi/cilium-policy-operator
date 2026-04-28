@@ -8,6 +8,8 @@ import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.ControllerConfiguration;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,7 +24,6 @@ import static com.airplus.cilium.reconciler.K8sUtils.createCiliumClusterwideNetw
 
 @Component
 @ControllerConfiguration
-@RequiredArgsConstructor
 @Slf4j
 public class PredefinedEndpointCatalogReconciler implements Reconciler<PredefinedEndpointCatalog> {
 
@@ -30,6 +31,16 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
   private long interval;
 
   private final KubernetesClient client;
+
+  private final Counter reconcileCounter;
+
+  public PredefinedEndpointCatalogReconciler(KubernetesClient client, MeterRegistry registry) {
+    this.client = client;
+    this.reconcileCounter = Counter.builder("ciliumpolicyoperator_predefinedendpointcatalog_reconcile_total")
+        .description("Total number of PredefinedEndpointCatalog reconcile operations")
+        .tag("status", "success")
+        .register(registry);
+  }
 
   @Override
   public UpdateControl<PredefinedEndpointCatalog> reconcile(PredefinedEndpointCatalog catalog, Context<PredefinedEndpointCatalog> context) {
@@ -46,6 +57,8 @@ public class PredefinedEndpointCatalogReconciler implements Reconciler<Predefine
       log.warn("no entries provided in {} '{}'", PEC, name);
       return UpdateControl.noUpdate();
     }
+
+    reconcileCounter.increment();
 
     var dups = findDuplicates(endpoints);
     if (!dups.isEmpty()) {

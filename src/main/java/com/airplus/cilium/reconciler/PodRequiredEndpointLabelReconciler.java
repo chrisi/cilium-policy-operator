@@ -15,6 +15,8 @@ import io.javaoperatorsdk.operator.processing.event.ResourceID;
 import io.javaoperatorsdk.operator.processing.event.source.EventSource;
 import io.javaoperatorsdk.operator.processing.event.source.informer.InformerEventSource;
 import io.javaoperatorsdk.operator.api.config.informer.InformerEventSourceConfiguration;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -30,10 +32,19 @@ import static com.airplus.cilium.reconciler.K8sUtils.podLabelsMatch;
 @Component
 @ControllerConfiguration(generationAwareEventProcessing = false)
 @Slf4j
-@AllArgsConstructor
 public class PodRequiredEndpointLabelReconciler implements Reconciler<Pod> {
 
   private final KubernetesClient client;
+
+  private final Counter reconcileCounter;
+
+  public PodRequiredEndpointLabelReconciler(KubernetesClient client, MeterRegistry registry) {
+    this.client = client;
+    this.reconcileCounter = Counter.builder("ciliumpolicyoperator_podrequiredendpointlabel_reconcile_total")
+        .description("Total number of PodRequiredEndpointLabel reconcile operations")
+        .tag("status", "success")
+        .register(registry);
+  }
 
   @Override
   public List<EventSource<?, Pod>> prepareEventSources(EventSourceContext<Pod> context) {
@@ -67,6 +78,8 @@ public class PodRequiredEndpointLabelReconciler implements Reconciler<Pod> {
       log.debug("pod '{}' in namespace '{}' has no labels so cannot be targeted", name, namespace);
       return UpdateControl.noUpdate();
     }
+
+    reconcileCounter.increment();
 
     // Find all RequiredEndpointSets that are relevant for this pod
     var sets = client.resources(RequiredEndpointSet.class).list().getItems().stream()
