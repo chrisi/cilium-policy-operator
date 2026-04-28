@@ -32,6 +32,6 @@ management:
 #      export:
 #        otlp:
 #          endpoint: http://alloy.observability.svc.cluster.local:4318/v1/traces
-#  observations:
-#    annotations:
-#      enabled: true
+  observations:
+    annotations:
+      enabled: true

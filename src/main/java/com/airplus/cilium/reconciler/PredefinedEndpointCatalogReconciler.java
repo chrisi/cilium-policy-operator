@@ -10,6 +10,7 @@ import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,7 @@ import static com.airplus.cilium.reconciler.K8sUtils.createCiliumClusterwideNetw
 @Component
 @ControllerConfiguration
 @Slf4j
+@Observed
 public class PredefinedEndpointCatalogReconciler implements Reconciler<PredefinedEndpointCatalog> {
 
   @Value("${operator.reconcilers.predefined-endpoint-catalog.update-interval:60}")

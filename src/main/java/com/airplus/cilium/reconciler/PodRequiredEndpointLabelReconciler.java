@@ -17,6 +17,7 @@ import io.javaoperatorsdk.operator.processing.event.source.informer.InformerEven
 import io.javaoperatorsdk.operator.api.config.informer.InformerEventSourceConfiguration;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.annotation.Observed;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -32,6 +33,7 @@ import static com.airplus.cilium.reconciler.K8sUtils.podLabelsMatch;
 @Component
 @ControllerConfiguration(generationAwareEventProcessing = false)
 @Slf4j
+@Observed
 public class PodRequiredEndpointLabelReconciler implements Reconciler<Pod> {
 
   private final KubernetesClient client;

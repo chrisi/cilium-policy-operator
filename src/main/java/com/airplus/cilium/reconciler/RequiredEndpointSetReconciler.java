@@ -10,6 +10,7 @@ import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,7 @@ import static com.airplus.cilium.reconciler.K8sUtils.createCiliumNetworkPolicy;
 @Component
 @ControllerConfiguration
 @Slf4j
+@Observed
 public class RequiredEndpointSetReconciler implements Reconciler<RequiredEndpointSet> {
 
   @Value("${operator.reconcilers.required-endpoint-set.update-interval:60}")
