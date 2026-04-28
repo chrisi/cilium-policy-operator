@@ -37,12 +37,17 @@ public class PodRequiredEndpointLabelReconciler implements Reconciler<Pod> {
   private final KubernetesClient client;
 
   private final Counter reconcileCounter;
+  private final Counter nonReconcileCounter;
 
   public PodRequiredEndpointLabelReconciler(KubernetesClient client, MeterRegistry registry) {
     this.client = client;
     this.reconcileCounter = Counter.builder("ciliumpolicyoperator_podrequiredendpointlabel_reconcile_total")
         .description("Total number of PodRequiredEndpointLabel reconcile operations")
         .tag("status", "success")
+        .register(registry);
+    this.nonReconcileCounter = Counter.builder("ciliumpolicyoperator_podrequiredendpointlabel_reconcile_total")
+        .description("Total number of PodRequiredEndpointLabel reconcile operations")
+        .tag("status", "aborted")
         .register(registry);
   }
 
@@ -76,6 +81,7 @@ public class PodRequiredEndpointLabelReconciler implements Reconciler<Pod> {
     final var podLabels = pod.getMetadata().getLabels();
     if (podLabels == null || podLabels.isEmpty()) {
       log.debug("pod '{}' in namespace '{}' has no labels so cannot be targeted", name, namespace);
+      nonReconcileCounter.increment();
       return UpdateControl.noUpdate();
     }
 
